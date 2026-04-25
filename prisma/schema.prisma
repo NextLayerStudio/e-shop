@@ -1,0 +1,165 @@
+// Prisma schema for the iknow3D e-shop
+// Database: Neon (PostgreSQL)
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================================================================
+// PRODUCTS
+// =====================================================================
+
+enum ProductCategory {
+  PRAKTICKE
+  DEKORATIVNE
+  HRACKY
+  DOPLNKY
+  INE
+}
+
+model Product {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  name            String
+  description     String          @db.Text
+  shortDescription String?        @db.Text
+  priceCents      Int             // price in cents (e.g. 1999 = 19,99 €)
+  stock           Int             @default(0)
+  category        ProductCategory @default(INE)
+
+  // Visibility / curation
+  isActive        Boolean         @default(true)
+  isFeaturedHome  Boolean         @default(false) // shows in the home grid
+  isHitOfWeek     Boolean         @default(false) // shows in "Hit týždňa" banner
+  homeSortOrder   Int             @default(0)     // ordering on home page
+  salesCount      Int             @default(0)     // popularity tracker
+
+  images          ProductImage[]
+  orderItems      OrderItem[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([isActive])
+  @@index([isFeaturedHome])
+  @@index([category])
+}
+
+// Images are stored directly in the database as bytes (per user request: "Prisma")
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  data      Bytes    // raw image bytes
+  mimeType  String   // e.g. image/jpeg, image/png, image/webp
+  alt       String?
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([productId, sortOrder])
+}
+
+// =====================================================================
+// ORDERS
+// =====================================================================
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  PAID
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id              String       @id @default(cuid())
+  orderNumber     String       @unique // human-friendly e.g. "2026-000123"
+
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+
+  address         String
+  city            String
+  postalCode      String
+  country         String       @default("Slovensko")
+
+  note            String?      @db.Text
+  totalCents      Int
+  status          OrderStatus  @default(NEW)
+
+  items           OrderItem[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId       String?
+  product         Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // Snapshot fields (so the order stays correct even if product changes)
+  productName     String
+  unitPriceCents  Int
+  quantity        Int
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// =====================================================================
+// TLAČ NA MIERU (Custom Print Requests)
+// =====================================================================
+
+enum CustomPrintStatus {
+  NEW
+  IN_REVIEW
+  QUOTED
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+model CustomPrintRequest {
+  id              String            @id @default(cuid())
+  requestNumber   String            @unique // e.g. "TLAC-2026-000045"
+
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+
+  description     String            @db.Text
+  // Optional uploaded file (e.g. STL/OBJ) – stored in DB
+  fileData        Bytes?
+  fileName        String?
+  fileMimeType    String?
+  fileSizeBytes   Int?
+
+  status          CustomPrintStatus @default(NEW)
+  adminNote       String?           @db.Text
+  quotedPriceCents Int?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
