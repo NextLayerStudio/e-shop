@@ -2,15 +2,32 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { totalQuantity } from "@/lib/cart";
+import { getCart, removeStaleCartItems, totalQuantity } from "@/lib/cart";
 
 export function CartIcon() {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const update = () => setCount(totalQuantity());
-    update();
-    const handler = () => update();
+    const refreshCount = () => setCount(totalQuantity());
+
+    const items = getCart();
+    if (items.length === 0) {
+      refreshCount();
+    } else {
+      const ids = items.map((i) => i.productId).join(",");
+      fetch(`/api/products/by-ids?ids=${ids}`)
+        .then((r) => {
+          if (!r.ok) throw new Error("fetch failed");
+          return r.json();
+        })
+        .then((data: { products: { id: string }[] }) => {
+          removeStaleCartItems(data.products.map((p) => p.id));
+          refreshCount();
+        })
+        .catch(refreshCount);
+    }
+
+    const handler = () => refreshCount();
     window.addEventListener("iknow3d:cart-changed", handler);
     window.addEventListener("storage", handler);
     return () => {

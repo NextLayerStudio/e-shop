@@ -22,7 +22,10 @@ function read(): CartItem[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (i): i is CartItem =>
-        typeof i?.productId === "string" && typeof i?.quantity === "number"
+        typeof i?.productId === "string" &&
+        typeof i?.quantity === "number" &&
+        Number.isFinite(i.quantity) &&
+        i.quantity > 0
     );
   } catch {
     return [];
@@ -71,6 +74,17 @@ export function clearCart(): void {
   write([]);
   clearPromoCode();
   clearShippingMethodId();
+}
+
+/**
+ * Drops cart lines whose products no longer exist (e.g. deleted in admin).
+ * Call after a successful `GET /api/products/by-ids` so the badge and košík stay in sync.
+ */
+export function removeStaleCartItems(existingProductIds: Iterable<string>): void {
+  const allowed = new Set(existingProductIds);
+  const current = read();
+  const next = current.filter((i) => allowed.has(i.productId));
+  if (next.length !== current.length) write(next);
 }
 
 export function getPromoCode(): string | null {

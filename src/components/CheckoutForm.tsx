@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { clearCart, getCart, getPromoCode, type CartItem } from "@/lib/cart";
+import { clearCart, getCart, getPromoCode, removeStaleCartItems, type CartItem } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { getShippingMethodById } from "@/lib/shippingMethods";
 import { getShippingMethodId } from "@/lib/shippingSelection";
@@ -59,8 +59,15 @@ export function CheckoutForm() {
       return;
     }
     fetch(`/api/products/by-ids?ids=${ids.join(",")}`)
-      .then((r) => r.json())
-      .then((data: { products: CartProduct[] }) => setProducts(data.products))
+      .then((r) => {
+        if (!r.ok) throw new Error("products fetch failed");
+        return r.json();
+      })
+      .then((data: { products: CartProduct[] }) => {
+        removeStaleCartItems(data.products.map((p) => p.id));
+        setItems(getCart());
+        setProducts(data.products);
+      })
       .catch(() => setProducts([]));
   }, [items]);
 

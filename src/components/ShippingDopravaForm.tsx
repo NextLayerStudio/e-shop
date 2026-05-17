@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getCart } from "@/lib/cart";
+import { getCart, removeStaleCartItems } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import {
   SHIPPING_METHODS,
@@ -30,8 +30,26 @@ export function ShippingDopravaForm() {
 
   useEffect(() => {
     const items = getCart();
-    setCartEmpty(items.length === 0);
-    syncFromStorage();
+    if (items.length === 0) {
+      setCartEmpty(true);
+      syncFromStorage();
+      return;
+    }
+    const ids = items.map((i) => i.productId);
+    fetch(`/api/products/by-ids?ids=${ids.join(",")}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("products fetch failed");
+        return r.json();
+      })
+      .then((data: { products: { id: string }[] }) => {
+        removeStaleCartItems(data.products.map((p) => p.id));
+        setCartEmpty(getCart().length === 0);
+        syncFromStorage();
+      })
+      .catch(() => {
+        setCartEmpty(false);
+        syncFromStorage();
+      });
   }, [syncFromStorage]);
 
   const selected = useMemo(

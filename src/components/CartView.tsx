@@ -7,6 +7,7 @@ import {
   getCart,
   getPromoCode,
   removeFromCart,
+  removeStaleCartItems,
   setPromoCode,
   setQuantity,
   type CartItem,
@@ -61,8 +62,14 @@ export function CartView() {
     }
     setLoading(true);
     fetch(`/api/products/by-ids?ids=${ids.join(",")}`)
-      .then((r) => r.json())
-      .then((data: { products: CartProduct[] }) => setProducts(data.products))
+      .then((r) => {
+        if (!r.ok) throw new Error("products fetch failed");
+        return r.json();
+      })
+      .then((data: { products: CartProduct[] }) => {
+        removeStaleCartItems(data.products.map((p) => p.id));
+        setProducts(data.products);
+      })
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   }, [items]);
