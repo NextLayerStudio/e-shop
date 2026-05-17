@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 const CATEGORIES = [
   { value: "PRAKTICKE", label: "Praktické" },
@@ -10,6 +10,30 @@ const CATEGORIES = [
   { value: "DOPLNKY", label: "Doplnky" },
   { value: "INE", label: "Iné" },
 ] as const;
+
+/** Homepage grid order presets (stored as `homeSortOrder`; nižší = vyšší v zozname pri zoradení podľa vlastného poradia). */
+const HOME_ORDER_SLOTS = [
+  { value: 0, label: "Úplný začiatok — medzi prvými" },
+  { value: 100, label: "Blízko začiatku" },
+  { value: 500, label: "Stred zoznamu (odporúčané)" },
+  { value: 2500, label: "Niečo vzadu v zozname" },
+  { value: 10000, label: "Na samý koniec" },
+] as const;
+
+/** Pick closest preset so edit form má zmysluplný default po starých hodnotách */
+function nearestHomeOrderPreset(stored: number | undefined): string {
+  const n = typeof stored === "number" && Number.isFinite(stored) ? stored : 500;
+  let best = HOME_ORDER_SLOTS[0]!.value.toString();
+  let bestDelta = Infinity;
+  for (const slot of HOME_ORDER_SLOTS) {
+    const d = Math.abs(n - slot.value);
+    if (d < bestDelta) {
+      bestDelta = d;
+      best = String(slot.value);
+    }
+  }
+  return best;
+}
 
 type ProductInput = {
   id: string;
@@ -37,6 +61,13 @@ export function ProductForm(props: Props) {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [featuredHome, setFeaturedHome] = useState(
+    initial?.isFeaturedHome ?? false
+  );
+  const [homeSortSlot, setHomeSortSlot] = useState(nearestHomeOrderPreset(initial?.homeSortOrder));
+
+  const homeHintId = useId();
 
   // For "create" we let the user pick initial images here;
   // on "edit" images are managed by the separate ProductImagesManager.
@@ -192,23 +223,54 @@ export function ProductForm(props: Props) {
             label="Aktívny (viditeľný v e-shope)"
             defaultChecked={initial?.isActive ?? true}
           />
-          <Toggle
-            name="isFeaturedHome"
-            label="Zobraziť na hlavnej stránke"
-            defaultChecked={initial?.isFeaturedHome ?? false}
-          />
+          <label className="flex cursor-pointer items-center gap-3 text-sm">
+            <input
+              name="isFeaturedHome"
+              type="checkbox"
+              checked={featuredHome}
+              onChange={(e) => setFeaturedHome(e.target.checked)}
+              className="h-4 w-4 accent-[var(--brand)]"
+            />
+            <span className="text-neutral-700">Zobraziť na hlavnej stránke</span>
+          </label>
           <Toggle
             name="isHitOfWeek"
             label="Hit týždňa (banner)"
             defaultChecked={initial?.isHitOfWeek ?? false}
           />
-          <Field
-            name="homeSortOrder"
-            label="Poradie na hlavnej (nižšie = skôr)"
-            type="number"
-            step="1"
-            defaultValue={initial?.homeSortOrder ?? 0}
-          />
+
+          <div
+            className={`space-y-1.5 rounded-xl border px-3 py-3 transition ${
+              featuredHome
+                ? "border-brand/25 bg-brand/5"
+                : "border-transparent bg-neutral-50/90 text-neutral-500"
+            }`}
+          >
+            <label className={`block text-sm ${!featuredHome ? "opacity-75" : ""}`}>
+              <span className="mb-1 block font-medium text-neutral-700">
+                Kde v zozname na úvodke?
+              </span>
+              <input type="hidden" name="homeSortOrder" value={homeSortSlot} />
+              <select
+                value={homeSortSlot}
+                onChange={(e) => setHomeSortSlot(e.target.value)}
+                disabled={!featuredHome}
+                aria-describedby={homeHintId}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {HOME_ORDER_SLOTS.map((s) => (
+                  <option key={s.value} value={String(s.value)}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p id={homeHintId} className="text-xs leading-relaxed text-neutral-500">
+              {featuredHome
+                ? "Produkty s nižšou voľbou sa zvyčajne zobrazia vyššie v mriežke úvodnej stránky (záleží aj od zvoleného „Zoradiť podľa“ nad produktami)."
+                : "Zapni „Na hlavnej stránke“ — potom nastav jednoduchú pozíciu v zozname."}
+            </p>
+          </div>
         </Card>
 
         {error && (
