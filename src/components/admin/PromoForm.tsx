@@ -3,10 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import {
-  dateToDatetimeLocalValue,
-  datetimeLocalInputToIsoUtc,
-} from "@/lib/datetimeLocal";
+import { dateToDatetimeLocalValue } from "@/lib/datetimeLocal";
 
 export type PromoFormInitial = {
   code: string;
@@ -112,22 +109,9 @@ export function PromoForm(props: Props) {
         minOrderCents = Math.round(me * 100);
       }
     }
-
-    const startsIso =
-      datetimeLocalInputToIsoUtc(startsAtLocal) ?? undefined;
-    if (!startsIso) {
-      setError("Zadaj platný začiatok platnosti.");
+    if (!startsAtLocal) {
+      setError("Vyplň začiatok platnosti.");
       return;
-    }
-
-    let endsIso: string | null = null;
-    if (endsAtRaw !== "") {
-      const parsedEnd = datetimeLocalInputToIsoUtc(endsAtRaw);
-      if (!parsedEnd) {
-        setError("Neplatný koniec platnosti.");
-        return;
-      }
-      endsIso = parsedEnd;
     }
 
     const payload = {
@@ -136,8 +120,8 @@ export function PromoForm(props: Props) {
       discountType,
       percentOff,
       amountOffCents,
-      startsAt: startsIso,
-      endsAt: endsIso,
+      startsAt: startsAtLocal,
+      endsAt: endsAtRaw === "" ? null : endsAtRaw,
       isActive,
       minOrderCents,
     };
@@ -279,7 +263,7 @@ export function PromoForm(props: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-neutral-700">
-            Platný od
+            Platný od (čas Slovenska)
           </span>
           <input
             name="startsAt"
@@ -290,7 +274,7 @@ export function PromoForm(props: Props) {
         </label>
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-neutral-700">
-            Platný do (voliteľné)
+            Platný do (voliteľné, čas Slovenska)
           </span>
           <input
             name="endsAt"
@@ -302,9 +286,10 @@ export function PromoForm(props: Props) {
       </div>
 
       <p className="text-xs leading-relaxed text-neutral-500">
-        Časy v poliach sú v časovom pásme tvojho prehliadača; pri uložení sa
-        odošlú ako presný časový okamih (na produkcii sa už neposúvajú o rozdiel
-        voči UTC servera).
+        Zadávaj dátum a čas ako slovenský miestny čas (časové pásmo{" "}
+        <span className="font-mono text-neutral-600">Europe/Bratislava</span>
+        , automaticky zohľadní letný čas). Uložené sú presné okamihy pre košík aj
+        na Verceli.
       </p>
 
       <label className="flex items-center gap-2 text-sm">

@@ -1,3 +1,5 @@
+import { STORE_TIMEZONE } from "./storeTime";
+
 /**
  * Format a price stored in cents as a Slovak EUR string, e.g. 1999 -> "19,99 €".
  */
@@ -24,7 +26,7 @@ export function formatDate(date: Date | string): string {
 }
 
 /**
- * Format a Date with time, e.g. "25. 4. 2026 14:32".
+ * Format a Date with time, e.g. "25. 4. 2026 14:32" (Intl default TZ of runtime).
  */
 export function formatDateTime(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -37,12 +39,10 @@ export function formatDateTime(date: Date | string): string {
   }).format(d);
 }
 
-/** Slovak shop default — use for displaying stored UTC instants to operators. */
-export const STORE_TIMEZONE = "Europe/Bratislava";
+export { STORE_TIMEZONE };
 
 /**
- * Like {@link formatDateTime} but in {@link STORE_TIMEZONE} so admin-facing promo
- * windows match how `datetime-local` was interpreted in the browser.
+ * Like {@link formatDateTime} but in {@link STORE_TIMEZONE} — Slovak shop clock for admins.
  */
 export function formatDateTimeStoreTz(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;

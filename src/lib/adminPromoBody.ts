@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PromoDiscountType } from "@/generated/prisma/enums";
 import { normalizePromoCodeInput } from "@/lib/promo";
+import { parsePromoDateInputToUtcDate } from "@/lib/storeTime";
 
 export const adminPromoBodySchema = z.object({
   code: z.string().min(2).max(40),
@@ -72,13 +73,25 @@ export function validateAdminPromoPayload(
     }
   }
 
-  // startsAt/endsAt must be full ISO strings (admin form sends UTC via datetimeLocalInputToIsoUtc).
-  const startsAt =
-    parsed.data.startsAt && String(parsed.data.startsAt).trim().length > 0
-      ? new Date(parsed.data.startsAt)
-      : new Date();
+  // startsAt/endsAt: naive YYYY-MM-DDTHH:mm = Europe/Bratislava; ISO+Z = absolute instant.
+  let startsAt: Date;
+  if (parsed.data.startsAt && String(parsed.data.startsAt).trim().length > 0) {
+    const sd = parsePromoDateInputToUtcDate(String(parsed.data.startsAt).trim());
+    if (!sd) {
+      return {
+        ok: false,
+        error: {
+          message: "Neplatný dátum začiatku platnosti.",
+          status: 400,
+        },
+      };
+    }
+    startsAt = sd;
+  } else {
+    startsAt = new Date();
+  }
+
   let endsAt: Date | null = null;
-  // Expect ISO UTC strings from the admin UI (datetime-local converted in browser).
   if (parsed.data.endsAt === undefined) {
     endsAt = null;
   } else if (
@@ -87,24 +100,18 @@ export function validateAdminPromoPayload(
   ) {
     endsAt = null;
   } else {
-    endsAt = new Date(parsed.data.endsAt as string);
+    const ed = parsePromoDateInputToUtcDate(
+      String(parsed.data.endsAt as string).trim()
+    );
+    if (!ed) {
+      return {
+        ok: false,
+        error: { message: "Neplatný dátum konca platnosti.", status: 400 },
+      };
+    }
+    endsAt = ed;
   }
 
-  if (Number.isNaN(startsAt.getTime())) {
-    return {
-      ok: false,
-      error: {
-        message: "Neplatný dátum začiatku platnosti.",
-        status: 400,
-      },
-    };
-  }
-  if (endsAt && Number.isNaN(endsAt.getTime())) {
-    return {
-      ok: false,
-      error: { message: "Neplatný dátum konca platnosti.", status: 400 },
-    };
-  }
   if (endsAt && endsAt <= startsAt) {
     return {
       ok: false,
