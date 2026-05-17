@@ -9,6 +9,24 @@ export const runtime = "nodejs";
 const VALID_CATEGORIES = ["PRAKTICKE", "DEKORATIVNE", "HRACKY", "DOPLNKY", "INE"];
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB per image
 
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|avif|bmp|heic|heif)$/i;
+
+function isLikelyImageFile(f: File): boolean {
+  if (f.type.startsWith("image/")) return true;
+  return IMAGE_EXT.test(f.name);
+}
+
+function mimeForImageFile(f: File): string {
+  if (f.type && f.type.startsWith("image/")) return f.type;
+  const lower = f.name.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".heic") || lower.endsWith(".heif")) return "image/heic";
+  if (lower.endsWith(".avif")) return "image/avif";
+  return "image/jpeg";
+}
+
 async function uniqueSlug(base: string): Promise<string> {
   const root = base || "produkt";
   let candidate = root;
@@ -49,66 +67,93 @@ export async function POST(req: Request) {
   if (!Number.isFinite(priceCents) || priceCents < 0) {
     return NextResponse.json({ error: "Neplatná cena." }, { status: 400 });
   }
+  if (!Number.isFinite(stock) || stock < 0) {
+    return NextResponse.json(
+      { error: "Neplatný počet kusov na sklade." },
+      { status: 400 }
+    );
+  }
+  const stockRounded = Math.round(stock);
   if (!VALID_CATEGORIES.includes(category)) {
     return NextResponse.json({ error: "Neplatná kategória." }, { status: 400 });
   }
 
   const slug = await uniqueSlug(slugInput ? slugify(slugInput) : slugify(name));
 
-  const images = form.getAll("images");
+  const rawImages = form.getAll("images");
   const imageData: {
     data: Uint8Array<ArrayBuffer>;
     mimeType: string;
     sortOrder: number;
     isPrimary: boolean;
   }[] = [];
-  for (let idx = 0; idx < images.length; idx++) {
-    const f = images[idx];
-    if (!(f instanceof File) || f.size === 0) continue;
-    if (f.size > MAX_IMAGE_BYTES) {
+  let idx = 0;
+  for (const entry of rawImages) {
+    if (!(entry instanceof File) || entry.size === 0) continue;
+    if (entry.size > MAX_IMAGE_BYTES) {
       return NextResponse.json(
-        { error: `Obrázok ${f.name} je väčší ako 8 MB.` },
+        { error: `Obrázok ${entry.name} je väčší ako 8 MB.` },
         { status: 400 }
       );
     }
-    if (!f.type.startsWith("image/")) {
+    if (!isLikelyImageFile(entry)) {
       return NextResponse.json(
-        { error: `Súbor ${f.name} nie je obrázok.` },
+        { error: `Súbor „${entry.name}“ nevyzerá ako obrázok (JPEG, PNG, WebP, HEIC…).` },
         { status: 400 }
       );
     }
-    const buf = await fileToBytes(f);
+    const buf = await fileToBytes(entry);
     imageData.push({
       data: buf,
-      mimeType: f.type,
+      mimeType: mimeForImageFile(entry),
       sortOrder: idx,
       isPrimary: idx === 0,
     });
+    idx += 1;
   }
 
-  const product = await prisma.product.create({
-    data: {
-      slug,
-      name,
-      description,
-      shortDescription: shortDescription || null,
-      priceCents: Math.round(priceCents),
-      stock: Math.round(stock),
-      category: category as
-        | "PRAKTICKE"
-        | "DEKORATIVNE"
-        | "HRACKY"
-        | "DOPLNKY"
-        | "INE",
-      isActive,
-      isFeaturedHome,
-      isHitOfWeek,
-      homeSortOrder: Math.round(homeSortOrder),
-      images: {
-        create: imageData,
+  try {
+    const product = await prisma.product.create({
+      data: {
+        slug,
+        name,
+        description,
+        shortDescription: shortDescription || null,
+        priceCents: Math.round(priceCents),
+        stock: stockRounded,
+        category: category as
+          | "PRAKTICKE"
+          | "DEKORATIVNE"
+          | "HRACKY"
+          | "DOPLNKY"
+          | "INE",
+        isActive,
+        isFeaturedHome,
+        isHitOfWeek,
+        homeSortOrder: Math.round(
+          Number.isFinite(homeSortOrder) ? homeSortOrder : 0
+        ),
+        ...(imageData.length > 0
+          ? { images: { create: imageData } }
+          : {}),
       },
-    },
-  });
+    });
 
-  return NextResponse.json({ id: product.id, slug: product.slug });
+    return NextResponse.json({ id: product.id, slug: product.slug });
+  } catch (e: unknown) {
+    console.error("[admin/products POST]", e);
+    const msg =
+      e && typeof e === "object" && "message" in e
+        ? String((e as { message: unknown }).message)
+        : "";
+    return NextResponse.json(
+      {
+        error:
+          process.env.NODE_ENV === "development" && msg
+            ? msg
+            : "Nepodarilo sa vytvoriť produkt (skontroluj polia alebo databázu).",
+      },
+      { status: 500 }
+    );
+  }
 }

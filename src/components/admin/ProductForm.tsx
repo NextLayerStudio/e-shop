@@ -71,7 +71,7 @@ export function ProductForm(props: Props) {
 
   // For "create" we let the user pick initial images here;
   // on "edit" images are managed by the separate ProductImagesManager.
-  const [files, setFiles] = useState<File[]>([]);
+  const [imageList, setImageList] = useState<string[]>([]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -84,10 +84,7 @@ export function ProductForm(props: Props) {
     formData.delete("priceEuros");
     formData.set("priceCents", String(Math.round(priceEuros * 100)));
 
-    // append picked files
-    if (!isEdit) {
-      for (const f of files) formData.append("images", f);
-    }
+    // Images: name="images" on input → súčasť FormData (žiadne manuálne append)
 
     // booleans (checkbox values are present only when checked)
     for (const key of ["isActive", "isFeaturedHome", "isHitOfWeek"]) {
@@ -99,17 +96,22 @@ export function ProductForm(props: Props) {
       : "/api/admin/products";
     const method = isEdit ? "PATCH" : "POST";
 
-    const res = await fetch(url, { method, body: formData });
-    const data = await res.json().catch(() => ({}));
+    try {
+      const res = await fetch(url, { method, body: formData });
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setError(data.error ?? "Nepodarilo sa uložiť produkt.");
+      if (!res.ok) {
+        setError(data.error ?? "Nepodarilo sa uložiť produkt.");
+        return;
+      }
+
+      router.push(`/admin/produkty/${data.id ?? initial!.id}`);
+      router.refresh();
+    } catch {
+      setError("Nepodarilo sa odoslať formulár (sieť alebo server). Skús znova.");
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    router.push(`/admin/produkty/${data.id ?? initial!.id}`);
-    router.refresh();
   }
 
   return (
@@ -160,20 +162,40 @@ export function ProductForm(props: Props) {
         {!isEdit && (
           <Card title="Obrázky">
             <input
+              name="images"
               type="file"
               multiple
-              accept="image/*"
-              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+              accept="image/*,.heic,.heif"
+              onChange={(e) => {
+                const list = e.target.files;
+                setImageList(
+                  list ? Array.from(list, (f) => f.name) : []
+                );
+              }}
               className="block w-full text-sm text-neutral-700 file:mr-3 file:rounded-full file:border-0 file:bg-brand file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-dark"
             />
-            {files.length > 0 && (
-              <p className="mt-2 text-xs text-neutral-500">
-                Vybraté: {files.map((f) => f.name).join(", ")}
+            {imageList.length > 0 ? (
+              <ol className="mt-3 list-decimal space-y-0.5 pl-5 text-xs text-neutral-600">
+                {imageList.map((name, i) => (
+                  <li key={`${i}-${name}`}>{name}</li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-2 text-xs text-neutral-400">
+                Zatiaľ žiadne súbory — voliteľné pri vytváraní, môžeš aj neskôr.
               </p>
             )}
-            <p className="mt-2 text-xs text-neutral-400">
-              Prvý obrázok bude hlavný. Po vytvorení produktu môžeš pridávať a
-              meniť obrázky kedykoľvek.
+            <p className="mt-2 text-xs text-neutral-500">
+              <strong>Viaceré fotky:</strong> pri výbere podrž{" "}
+              <kbd className="rounded bg-neutral-100 px-1 py-0.5 font-mono text-[10px]">
+                Ctrl
+              </kbd>{" "}
+              (Windows) alebo{" "}
+              <kbd className="rounded bg-neutral-100 px-1 py-0.5 font-mono text-[10px]">
+                Cmd
+              </kbd>{" "}
+              (Mac) a klikni na jednotlivé súbory. Prvý v zozname = hlavný
+              obrázok. Max. 8 MB na súbor.
             </p>
           </Card>
         )}
