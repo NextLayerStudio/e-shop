@@ -1,6 +1,9 @@
 "use client";
 
+import { clearShippingMethodId } from "@/lib/shippingSelection";
+
 const STORAGE_KEY = "iknow3d_cart_v1";
+const PROMO_KEY = "iknow3d_promo_v1";
 
 export type CartItem = {
   productId: string;
@@ -66,6 +69,38 @@ export function removeFromCart(productId: string): void {
 
 export function clearCart(): void {
   write([]);
+  clearPromoCode();
+  clearShippingMethodId();
+}
+
+export function getPromoCode(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PROMO_KEY);
+    if (!raw) return null;
+    const s = raw.trim();
+    return s ? normalizePromoStored(s) : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizePromoStored(s: string): string {
+  return s.trim().toUpperCase();
+}
+
+export function setPromoCode(code: string | null): void {
+  if (typeof window === "undefined") return;
+  if (!code) {
+    window.localStorage.removeItem(PROMO_KEY);
+  } else {
+    window.localStorage.setItem(PROMO_KEY, normalizePromoStored(code));
+  }
+  window.dispatchEvent(new CustomEvent("iknow3d:promo-changed"));
+}
+
+export function clearPromoCode(): void {
+  setPromoCode(null);
 }
 
 export function totalQuantity(): number {

@@ -12,7 +12,13 @@ export type ProductCardData = {
   primaryImageId: string | null;
 };
 
-export function ProductCard({ product }: { product: ProductCardData }) {
+export function ProductCard({
+  product,
+  ctaLabel = "Pozrieť bližšie",
+}: {
+  product: ProductCardData;
+  ctaLabel?: string;
+}) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200/60 transition hover:shadow-md">
       <Link
@@ -46,7 +52,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             href={`/produkty/${product.slug}`}
             className="rounded-full bg-brand px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-dark"
           >
-            Pozrieť bližšie
+            {ctaLabel}
           </Link>
         </div>
       </div>

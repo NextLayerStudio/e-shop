@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductCard, type ProductCardData } from "@/components/ProductCard";
 import { ProductImage } from "@/components/ProductImage";
 import { HomeFilters } from "@/components/HomeFilters";
+import { HomeHeroCarousel } from "@/components/HomeHeroCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -141,46 +142,7 @@ export default async function HomePage({
         </div>
       )}
 
-      {/* HERO */}
-      <section className="relative overflow-hidden rounded-2xl bg-neutral-900 p-6 text-white shadow-sm md:p-10">
-        <div className="grid gap-6 md:grid-cols-2 md:items-center">
-          <div className="max-w-md">
-            <h1 className="text-2xl font-bold leading-tight md:text-3xl">
-              Sprav svoju prvú objednávku{" "}
-              <span className="text-accent">Akcia 10%</span> pre prvý nákup
-            </h1>
-            <p className="mt-3 text-sm leading-relaxed text-neutral-300">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse
-              vel auctor risus. Praesent vehicula urna nec semper porta.
-            </p>
-            <Link
-              href="/produkty"
-              className="mt-5 inline-flex items-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark"
-            >
-              Objednať teraz
-            </Link>
-          </div>
-
-          <div className="relative h-48 w-full md:h-64">
-            <div className="absolute inset-0 flex items-center justify-center gap-3 opacity-90">
-              <div className="h-32 w-20 rounded-xl bg-neutral-700" />
-              <div className="h-40 w-24 rounded-xl bg-accent" />
-              <div className="h-32 w-20 rounded-xl bg-neutral-700" />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-center gap-1.5">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <span
-              key={i}
-              className={`h-1.5 w-6 rounded-full ${
-                i === 2 ? "bg-white" : "bg-white/30"
-              }`}
-            />
-          ))}
-        </div>
-      </section>
+      <HomeHeroCarousel />
 
       {/* FILTERS */}
       <section className="mt-10">

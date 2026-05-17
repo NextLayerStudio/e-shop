@@ -3,12 +3,7 @@ import { Suspense } from "react";
 import { Logo } from "./Logo";
 import { CartIcon } from "./CartIcon";
 import { SearchBar } from "./SearchBar";
-
-const navLinks = [
-  { href: "/", label: "Domov" },
-  { href: "/produkty", label: "Produkty" },
-  { href: "/tlac-na-mieru", label: "Tlač na mieru" },
-];
+import { NavbarNavLinks } from "./NavbarNavLinks";
 
 export function Navbar() {
   return (
@@ -16,16 +11,8 @@ export function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 md:px-6">
         <Logo />
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-neutral-700 transition-colors hover:text-brand"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-2 md:flex">
+          <NavbarNavLinks />
         </nav>
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-3 md:flex-none md:ml-0 md:flex-1 md:justify-end">
@@ -56,16 +43,8 @@ export function Navbar() {
       </div>
 
       {/* mobile nav */}
-      <nav className="mx-auto flex max-w-7xl gap-4 overflow-x-auto px-4 pb-3 md:hidden">
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="whitespace-nowrap text-sm font-medium text-neutral-700"
-          >
-            {link.label}
-          </Link>
-        ))}
+      <nav className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 md:hidden">
+        <NavbarNavLinks className="whitespace-nowrap" />
       </nav>
     </header>
   );

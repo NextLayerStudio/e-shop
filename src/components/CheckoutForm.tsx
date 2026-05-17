@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { clearCart, getCart, type CartItem } from "@/lib/cart";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { clearCart, getCart, getPromoCode, type CartItem } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { getShippingMethodById } from "@/lib/shippingMethods";
+import { getShippingMethodId } from "@/lib/shippingSelection";
 
 type CartProduct = {
   id: string;
@@ -17,10 +20,37 @@ export function CheckoutForm() {
   const [products, setProducts] = useState<CartProduct[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoRev, setPromoRev] = useState(0);
+  const [shippingRev, setShippingRev] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
+
+  const bumpPromo = useCallback(() => setPromoRev((x) => x + 1), []);
 
   useEffect(() => {
     setItems(getCart());
+    setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    const onPromo = () => bumpPromo();
+    window.addEventListener("iknow3d:promo-changed", onPromo);
+    return () => window.removeEventListener("iknow3d:promo-changed", onPromo);
+  }, [bumpPromo]);
+
+  useEffect(() => {
+    const onShip = () => setShippingRev((x) => x + 1);
+    window.addEventListener("iknow3d:shipping-changed", onShip);
+    return () => window.removeEventListener("iknow3d:shipping-changed", onShip);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (items.length === 0) return;
+    if (!getShippingMethodId()) {
+      router.replace("/pokladna/doprava");
+    }
+  }, [hydrated, items.length, router, shippingRev]);
 
   useEffect(() => {
     const ids = items.map((i) => i.productId);
@@ -41,10 +71,59 @@ export function CheckoutForm() {
     })
     .filter((x): x is CartItem & { product: CartProduct } => x !== null);
 
-  const total = lineItems.reduce(
-    (s, it) => s + it.product.priceCents * it.quantity,
-    0
+  const subtotal = useMemo(
+    () =>
+      lineItems.reduce(
+        (s, it) => s + it.product.priceCents * it.quantity,
+        0
+      ),
+    [lineItems]
   );
+
+  useEffect(() => {
+    if (lineItems.length === 0) {
+      setPromoDiscount(0);
+      return;
+    }
+    const code = getPromoCode();
+    if (!code) {
+      setPromoDiscount(0);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/promo/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, subtotalCents: subtotal }),
+        });
+        const data = (await res.json()) as {
+          ok?: boolean;
+          discountCents?: number;
+        };
+        if (cancelled) return;
+        if (data.ok && typeof data.discountCents === "number") {
+          setPromoDiscount(data.discountCents);
+        } else {
+          setPromoDiscount(0);
+        }
+      } catch {
+        if (!cancelled) setPromoDiscount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [subtotal, lineItems.length, promoRev]);
+
+  const shippingId = getShippingMethodId();
+  const shippingMethod = shippingId
+    ? getShippingMethodById(shippingId)
+    : undefined;
+  const shippingCents = shippingMethod?.feeCents ?? 0;
+  const total = Math.max(0, subtotal - promoDiscount + shippingCents);
+  const appliedCode = getPromoCode();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,6 +131,13 @@ export function CheckoutForm() {
     setSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
+    const shipId = getShippingMethodId();
+    if (!shipId || !getShippingMethodById(shipId)) {
+      setError("Vyber spôsob dopravy.");
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       customerName: String(formData.get("customerName") ?? ""),
       customerEmail: String(formData.get("customerEmail") ?? ""),
@@ -61,6 +147,8 @@ export function CheckoutForm() {
       postalCode: String(formData.get("postalCode") ?? ""),
       country: String(formData.get("country") ?? "Slovensko"),
       note: String(formData.get("note") ?? ""),
+      promoCode: getPromoCode() ?? "",
+      shippingMethodId: shipId,
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
     };
 
@@ -84,6 +172,12 @@ export function CheckoutForm() {
     }
   }
 
+  if (!hydrated) {
+    return (
+      <p className="mt-6 text-sm text-neutral-500">Načítavam…</p>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="mt-6 rounded-2xl border-2 border-dashed border-neutral-200 bg-white p-10 text-center text-sm text-neutral-500">
@@ -91,6 +185,24 @@ export function CheckoutForm() {
       </div>
     );
   }
+
+  if (hydrated && !shippingMethod) {
+    return (
+      <div className="mt-6 rounded-2xl bg-white p-6 text-center ring-1 ring-neutral-200">
+        <p className="text-sm text-neutral-600">
+          Presmerovávam na výber dopravy…
+        </p>
+        <Link
+          href="/pokladna/doprava"
+          className="mt-4 inline-block text-sm font-semibold text-brand hover:text-brand-dark"
+        >
+          Ak sa nič nestane, klikni sem
+        </Link>
+      </div>
+    );
+  }
+
+  const showPromo = appliedCode && promoDiscount > 0;
 
   return (
     <form onSubmit={onSubmit} className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -131,7 +243,7 @@ export function CheckoutForm() {
         )}
       </div>
 
-      <aside className="rounded-2xl bg-white p-5 ring-1 ring-neutral-200 h-fit">
+      <aside className="h-fit rounded-2xl bg-white p-5 ring-1 ring-neutral-200">
         <h2 className="text-lg font-bold text-neutral-900">Tvoja objednávka</h2>
         <ul className="mt-4 divide-y divide-neutral-100">
           {lineItems.map((it) => (
@@ -149,11 +261,37 @@ export function CheckoutForm() {
             </li>
           ))}
         </ul>
-        <div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-4">
-          <span className="font-semibold">Celkom</span>
-          <span className="text-xl font-bold text-brand">
-            {formatPrice(total)}
-          </span>
+        <div className="mt-4 space-y-1 border-t border-neutral-200 pt-4 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-neutral-600">Medzisúčet</span>
+            <span className="font-semibold">{formatPrice(subtotal)}</span>
+          </div>
+          {showPromo && (
+            <>
+              <div className="flex items-center justify-between text-green-700">
+                <span>
+                  Zľava ({appliedCode})
+                </span>
+                <span className="font-semibold">
+                  −{formatPrice(promoDiscount)}
+                </span>
+              </div>
+            </>
+          )}
+          {shippingMethod && (
+            <div className="flex items-center justify-between text-neutral-700">
+              <span className="max-w-[65%] leading-snug">
+                Doprava — {shippingMethod.label}
+              </span>
+              <span className="flex-shrink-0 font-semibold">
+                {shippingCents === 0 ? "Zdarma" : formatPrice(shippingCents)}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center justify-between border-t border-neutral-200 pt-3">
+            <span className="font-semibold">Celkom</span>
+            <span className="text-xl font-bold text-brand">{formatPrice(total)}</span>
+          </div>
         </div>
         <button
           type="submit"

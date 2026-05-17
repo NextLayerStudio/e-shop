@@ -6,16 +6,18 @@ import { addToCart } from "@/lib/cart";
 export function AddToCartButton({
   productId,
   disabled,
+  className = "",
 }: {
   productId: string;
   disabled?: boolean;
+  className?: string;
 }) {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
   return (
-    <div className="mt-2 flex items-center gap-3">
-      <div className="inline-flex items-center rounded-full ring-1 ring-neutral-200 bg-white">
+    <div className={`flex min-w-0 flex-1 flex-wrap items-center gap-3 ${className}`}>
+      <div className="inline-flex items-center rounded-full bg-white ring-1 ring-neutral-200">
         <button
           type="button"
           onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -45,7 +47,7 @@ export function AddToCartButton({
           window.setTimeout(() => setAdded(false), 1500);
         }}
         disabled={disabled}
-        className="rounded-full bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-[44px] min-w-[180px] flex-1 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {added ? "Pridané do košíka ✓" : "Pridať do košíka"}
       </button>

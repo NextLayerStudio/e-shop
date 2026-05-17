@@ -19,6 +19,11 @@ export default async function OrderConfirmationPage({
 
   if (!order) notFound();
 
+  const itemsSubtotal = order.items.reduce(
+    (s, it) => s + it.unitPriceCents * it.quantity,
+    0
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
       <div className="rounded-2xl bg-white p-8 ring-1 ring-neutral-200">
@@ -63,6 +68,34 @@ export default async function OrderConfirmationPage({
             </li>
           ))}
         </ul>
+
+        <div className="mt-4 space-y-1 text-sm text-neutral-600">
+          <div className="flex items-center justify-between">
+            <span>Medzisúčet</span>
+            <span>{formatPrice(itemsSubtotal)}</span>
+          </div>
+          {(order.discountCents ?? 0) > 0 && (
+            <div className="flex items-center justify-between text-green-700">
+              <span>
+                Zľava
+                {order.promoSnapshot ? (
+                  <span className="text-neutral-500"> ({order.promoSnapshot})</span>
+                ) : null}
+              </span>
+              <span>−{formatPrice(order.discountCents)}</span>
+            </div>
+          )}
+          {order.shippingLabel && (
+            <div className="flex items-center justify-between">
+              <span>Doprava — {order.shippingLabel}</span>
+              <span className="font-semibold text-neutral-800">
+                {(order.shippingCents ?? 0) === 0
+                  ? "Zdarma"
+                  : formatPrice(order.shippingCents ?? 0)}
+              </span>
+            </div>
+          )}
+        </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-4">
           <span className="font-semibold">Celkom</span>

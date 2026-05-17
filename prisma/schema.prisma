@@ -82,6 +82,33 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PromoDiscountType {
+  PERCENT
+  FIXED
+}
+
+model PromoCode {
+  id              String            @id @default(cuid())
+  code            String            @unique
+  note            String?           @db.Text // internal admin note
+  discountType    PromoDiscountType
+  percentOff      Int? // 1–100 when PERCENT
+  amountOffCents  Int? // when FIXED, amount in cents
+  startsAt        DateTime          @default(now())
+  endsAt          DateTime? // null = no end date
+  isActive        Boolean           @default(true)
+  /// Minimum cart subtotal (cents) required to apply this code; null = no minimum
+  minOrderCents   Int?
+
+  orders          Order[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+}
+
 model Order {
   id              String       @id @default(cuid())
   orderNumber     String       @unique // human-friendly e.g. "2026-000123"
@@ -97,6 +124,16 @@ model Order {
 
   note            String?      @db.Text
   totalCents      Int
+  discountCents   Int          @default(0)
+  shippingCents   Int          @default(0)
+  shippingMethodId  String?
+  shippingLabel     String?
+
+  promoCodeId     String?
+  promoCode       PromoCode?   @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  /// Snapshot of the entered code at checkout (for history if promo is deleted)
+  promoSnapshot   String?
+
   status          OrderStatus  @default(NEW)
 
   items           OrderItem[]

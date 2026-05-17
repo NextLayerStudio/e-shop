@@ -21,6 +21,11 @@ export default async function AdminOrderDetailPage({
   });
   if (!order) notFound();
 
+  const itemsSubtotal = order.items.reduce(
+    (s, it) => s + it.unitPriceCents * it.quantity,
+    0
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -57,6 +62,35 @@ export default async function AdminOrderDetailPage({
               </li>
             ))}
           </ul>
+          <div className="mt-3 space-y-1 text-sm">
+            <div className="flex items-center justify-between text-neutral-600">
+              <span>Medzisúčet položiek</span>
+              <span>{formatPrice(itemsSubtotal)}</span>
+            </div>
+            {(order.discountCents ?? 0) > 0 && (
+              <div className="flex items-center justify-between text-green-700">
+                <span>
+                  Zľava — kupón{" "}
+                  {order.promoSnapshot && (
+                    <span className="font-medium text-neutral-800">
+                      {order.promoSnapshot}
+                    </span>
+                  )}
+                </span>
+                <span>−{formatPrice(order.discountCents)}</span>
+              </div>
+            )}
+            {order.shippingLabel && (
+              <div className="flex items-center justify-between text-neutral-700">
+                <span>Doprava — {order.shippingLabel}</span>
+                <span className="font-semibold">
+                  {(order.shippingCents ?? 0) === 0
+                    ? "Zdarma"
+                    : formatPrice(order.shippingCents ?? 0)}
+                </span>
+              </div>
+            )}
+          </div>
           <div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-3">
             <span className="font-semibold">Celkom</span>
             <span className="text-xl font-bold text-brand">

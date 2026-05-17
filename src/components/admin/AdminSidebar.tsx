@@ -7,6 +7,7 @@ const links = [
   { href: "/admin", label: "Prehľad", icon: "dashboard" },
   { href: "/admin/produkty", label: "Produkty", icon: "box" },
   { href: "/admin/skladom", label: "Sklad", icon: "stack" },
+  { href: "/admin/promo", label: "Promo kódy", icon: "tag" },
   { href: "/admin/objednavky", label: "Objednávky", icon: "cart" },
   { href: "/admin/tlac", label: "Tlač na mieru", icon: "printer" },
 ] as const;
@@ -113,6 +114,13 @@ function Icon({ name }: { name: string }) {
           <path d="M6 9V3h12v6" />
           <rect x="3" y="9" width="18" height="9" rx="2" />
           <rect x="6" y="14" width="12" height="7" rx="1" />
+        </svg>
+      );
+    case "tag":
+      return (
+        <svg {...props}>
+          <path d="M12 2H2v10l9.3 9.3a1 1 0 0 0 1.4 0l9.3-9.3V2H12z" />
+          <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
         </svg>
       );
     case "home":
