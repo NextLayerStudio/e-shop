@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { dateToDatetimeLocalValue } from "@/lib/datetimeLocal";
+import {
+  dateToDatetimeLocalValue,
+  datetimeLocalInputToIsoUtc,
+} from "@/lib/datetimeLocal";
 
 export type PromoFormInitial = {
   code: string;
@@ -72,7 +75,7 @@ export function PromoForm(props: Props) {
     const eurosRaw = String(fd.get("amountEuros") ?? "")
       .trim()
       .replace(",", ".");
-    const startsAt = String(fd.get("startsAt") ?? "").trim();
+    const startsAtLocal = String(fd.get("startsAt") ?? "").trim();
     const endsAtRaw = String(fd.get("endsAt") ?? "").trim();
     const isActive = fd.get("isActive") === "on";
     const minOrderEurosRaw = String(fd.get("minOrderEuros") ?? "")
@@ -110,14 +113,31 @@ export function PromoForm(props: Props) {
       }
     }
 
+    const startsIso =
+      datetimeLocalInputToIsoUtc(startsAtLocal) ?? undefined;
+    if (!startsIso) {
+      setError("Zadaj platný začiatok platnosti.");
+      return;
+    }
+
+    let endsIso: string | null = null;
+    if (endsAtRaw !== "") {
+      const parsedEnd = datetimeLocalInputToIsoUtc(endsAtRaw);
+      if (!parsedEnd) {
+        setError("Neplatný koniec platnosti.");
+        return;
+      }
+      endsIso = parsedEnd;
+    }
+
     const payload = {
       code,
       note,
       discountType,
       percentOff,
       amountOffCents,
-      startsAt: startsAt || undefined,
-      endsAt: endsAtRaw === "" ? null : endsAtRaw,
+      startsAt: startsIso,
+      endsAt: endsIso,
       isActive,
       minOrderCents,
     };
@@ -280,6 +300,12 @@ export function PromoForm(props: Props) {
           />
         </label>
       </div>
+
+      <p className="text-xs leading-relaxed text-neutral-500">
+        Časy v poliach sú v časovom pásme tvojho prehliadača; pri uložení sa
+        odošlú ako presný časový okamih (na produkcii sa už neposúvajú o rozdiel
+        voči UTC servera).
+      </p>
 
       <label className="flex items-center gap-2 text-sm">
         <input

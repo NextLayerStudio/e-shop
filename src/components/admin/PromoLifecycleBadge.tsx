@@ -23,7 +23,7 @@ export function PromoLifecycleBadge({ startsAt, endsAt, isActive }: Props) {
     label = "Expirovaný";
     cls = "bg-red-100 text-red-800";
   } else {
-    label = "Platný";
+    label = "V platnosti";
     cls = "bg-green-100 text-green-800";
   }
 

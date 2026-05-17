@@ -37,6 +37,25 @@ export function formatDateTime(date: Date | string): string {
   }).format(d);
 }
 
+/** Slovak shop default — use for displaying stored UTC instants to operators. */
+export const STORE_TIMEZONE = "Europe/Bratislava";
+
+/**
+ * Like {@link formatDateTime} but in {@link STORE_TIMEZONE} so admin-facing promo
+ * windows match how `datetime-local` was interpreted in the browser.
+ */
+export function formatDateTimeStoreTz(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("sk-SK", {
+    timeZone: STORE_TIMEZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
 /**
  * Generate a URL-safe slug from a Slovak/diacritic string.
  */

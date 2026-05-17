@@ -72,11 +72,13 @@ export function validateAdminPromoPayload(
     }
   }
 
+  // startsAt/endsAt must be full ISO strings (admin form sends UTC via datetimeLocalInputToIsoUtc).
   const startsAt =
     parsed.data.startsAt && String(parsed.data.startsAt).trim().length > 0
       ? new Date(parsed.data.startsAt)
       : new Date();
   let endsAt: Date | null = null;
+  // Expect ISO UTC strings from the admin UI (datetime-local converted in browser).
   if (parsed.data.endsAt === undefined) {
     endsAt = null;
   } else if (

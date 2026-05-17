@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatDateTime, formatPrice } from "@/lib/format";
+import { formatDateTimeStoreTz, formatPrice } from "@/lib/format";
 import { PromoDiscountType } from "@/generated/prisma/enums";
 import { deactivateExpiredPromos } from "@/lib/deactivateExpiredPromos";
 import { PromoActiveToggle } from "@/components/admin/PromoActiveToggle";
@@ -72,18 +72,28 @@ export default async function AdminPromoPage() {
                         : "—"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-neutral-600">
-                      {formatDateTime(p.startsAt)}
+                      {formatDateTimeStoreTz(p.startsAt)}
                       {" — "}
-                      {p.endsAt ? formatDateTime(p.endsAt) : "bez konca"}
+                      {p.endsAt ? formatDateTimeStoreTz(p.endsAt) : "bez konca"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-2">
-                        <PromoLifecycleBadge
-                          startsAt={p.startsAt}
-                          endsAt={p.endsAt}
-                          isActive={p.isActive}
-                        />
-                        <PromoActiveToggle id={p.id} isActive={p.isActive} />
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                            Kalendár
+                          </p>
+                          <PromoLifecycleBadge
+                            startsAt={p.startsAt}
+                            endsAt={p.endsAt}
+                            isActive={p.isActive}
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                            V obchode
+                          </p>
+                          <PromoActiveToggle id={p.id} isActive={p.isActive} />
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
