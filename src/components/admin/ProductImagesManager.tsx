@@ -1,5 +1,6 @@
 "use client";
 
+import { compressImagesForUpload } from "@/lib/compressImagesForUpload";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import Image from "next/image";
@@ -11,6 +12,9 @@ type ImgInfo = {
   alt: string | null;
 };
 
+/** ~limit veľkosti jedného HTTP requestu na bežnom hostingu (Vercel). */
+const HOSTING_MAX_BYTES = 4.5 * 1024 * 1024;
+
 export function ProductImagesManager({
   productId,
   images,
@@ -21,29 +25,65 @@ export function ProductImagesManager({
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState<"compress" | "upload" | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   async function uploadFiles() {
     if (files.length === 0) return;
     setUploading(true);
+    setUploadPhase("compress");
     setError(null);
 
-    const fd = new FormData();
-    for (const f of files) fd.append("images", f);
-
-    const res = await fetch(`/api/admin/products/${productId}/images`, {
-      method: "POST",
-      body: fd,
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Nahrávanie zlyhalo.");
+    let prepared: File[];
+    try {
+      prepared = await compressImagesForUpload(files);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Optimalizácia zlyhala.");
       setUploading(false);
+      setUploadPhase(null);
       return;
     }
+
+    for (const f of prepared) {
+      if (f.size > HOSTING_MAX_BYTES) {
+        setError(
+          `Po optimalizácii je „${f.name}“ stále väčší ako ~4,5 MB. Skús iný súbor.`
+        );
+        setUploading(false);
+        setUploadPhase(null);
+        return;
+      }
+    }
+
+    setUploadPhase("upload");
+
+    for (let i = 0; i < prepared.length; i++) {
+      const fd = new FormData();
+      fd.append("images", prepared[i]!);
+      const res = await fetch(`/api/admin/products/${productId}/images`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(
+          typeof data.error === "string"
+            ? `${data.error} (${i + 1}. z ${prepared.length})`
+            : `Nahrávanie zlyhalo (${i + 1}. z ${prepared.length}).`
+        );
+        setUploading(false);
+        setUploadPhase(null);
+        router.refresh();
+        return;
+      }
+    }
+
     setFiles([]);
     setUploading(false);
+    setUploadPhase(null);
     router.refresh();
   }
 
@@ -135,7 +175,11 @@ export function ProductImagesManager({
           disabled={uploading || files.length === 0}
           className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
         >
-          {uploading ? "Nahrávam…" : `Nahrať ${files.length || ""}`}
+          {uploading
+            ? uploadPhase === "compress"
+              ? "Optimalizujem…"
+              : "Nahrávam…"
+            : `Nahrať ${files.length || ""}`}
         </button>
       </div>
 

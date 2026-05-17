@@ -1,5 +1,6 @@
 "use client";
 
+import { compressImagesForUpload, UPLOAD_MAX_EDGE_PX } from "@/lib/compressImagesForUpload";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
@@ -60,6 +61,9 @@ export function ProductForm(props: Props) {
   const initial = isEdit ? props.product : undefined;
 
   const [submitting, setSubmitting] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState<
+    "compress" | "product" | "images" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
 
   const [featuredHome, setFeaturedHome] = useState(
@@ -73,18 +77,57 @@ export function ProductForm(props: Props) {
   // on "edit" images are managed by the separate ProductImagesManager.
   const [imageList, setImageList] = useState<string[]>([]);
 
+  /** Hosting (napr. Vercel) má typicky ~4,5 MB limit na jeden HTTP request — jedna väčšia fotka z mobilu tým pádom neprejde. */
+  const HOSTING_MAX_BYTES = 4.5 * 1024 * 1024;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+    setUploadPhase(null);
 
-    const formData = new FormData(e.currentTarget);
+    const formEl = e.currentTarget;
+    const imageInput = formEl.querySelector<HTMLInputElement>('input[name="images"]');
+    const imageFiles =
+      !isEdit && imageInput?.files?.length
+        ? Array.from(imageInput.files)
+        : [];
+
+    let preparedImageFiles: File[] = [];
+    if (!isEdit && imageFiles.length > 0) {
+      setUploadPhase("compress");
+      try {
+        preparedImageFiles = await compressImagesForUpload(imageFiles);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Optimalizácia obrázkov zlyhala.");
+        setSubmitting(false);
+        setUploadPhase(null);
+        return;
+      }
+      for (const f of preparedImageFiles) {
+        if (f.size > HOSTING_MAX_BYTES) {
+          setError(
+            `Po optimalizácii je „${f.name}“ stále väčší ako ~4,5 MB. Skús iný súbor alebo manuálne zmenšiť rozmer.`
+          );
+          setSubmitting(false);
+          setUploadPhase(null);
+          return;
+        }
+      }
+    }
+
+    setUploadPhase("product");
+
+    const formData = new FormData(formEl);
     // priceEuros -> priceCents
     const priceEuros = Number(formData.get("priceEuros") ?? 0);
     formData.delete("priceEuros");
     formData.set("priceCents", String(Math.round(priceEuros * 100)));
 
-    // Images: name="images" on input → súčasť FormData (žiadne manuálne append)
+    // Pri vytváraní posielame obrázky samostatnými requestami (celkový objem viacerých MB v jednom POST by na Verceli zlyhal).
+    while (formData.has("images")) {
+      formData.delete("images");
+    }
 
     // booleans (checkbox values are present only when checked)
     for (const key of ["isActive", "isFeaturedHome", "isHitOfWeek"]) {
@@ -105,12 +148,38 @@ export function ProductForm(props: Props) {
         return;
       }
 
-      router.push(`/admin/produkty/${data.id ?? initial!.id}`);
+      const productId = data.id ?? initial!.id;
+
+      if (!isEdit && preparedImageFiles.length > 0) {
+        setUploadPhase("images");
+        for (let i = 0; i < preparedImageFiles.length; i++) {
+          const fd = new FormData();
+          fd.append("images", preparedImageFiles[i]!);
+          const imgRes = await fetch(`/api/admin/products/${productId}/images`, {
+            method: "POST",
+            body: fd,
+          });
+          if (!imgRes.ok) {
+            const err = await imgRes.json().catch(() => ({}));
+            setError(
+              typeof err.error === "string"
+                ? `${err.error} (produkt už existuje — môžeš doplniť obrázky v úprave.)`
+                : `Produkt bol vytvorený, ale obrázok ${i + 1}/${preparedImageFiles.length} sa nepodarilo nahrať. Skús ho pridať v úprave produktu.`
+            );
+            router.push(`/admin/produkty/${productId}`);
+            router.refresh();
+            return;
+          }
+        }
+      }
+
+      router.push(`/admin/produkty/${productId}`);
       router.refresh();
     } catch {
       setError("Nepodarilo sa odoslať formulár (sieť alebo server). Skús znova.");
     } finally {
       setSubmitting(false);
+      setUploadPhase(null);
     }
   }
 
@@ -195,7 +264,10 @@ export function ProductForm(props: Props) {
                 Cmd
               </kbd>{" "}
               (Mac) a klikni na jednotlivé súbory. Prvý v zozname = hlavný
-              obrázok. Max. 8 MB na súbor.
+              obrázok. Pred odoslaním sa v prehliadači automaticky zmenšia na max.{" "}
+              {UPLOAD_MAX_EDGE_PX}
+              px a WebP/JPEG, aby nahrávanie na hosting prešlo. Surové 40+ MP fotky
+              sú zbytočné na e-shop.
             </p>
           </Card>
         )}
@@ -307,7 +379,11 @@ export function ProductForm(props: Props) {
           className="w-full rounded-full bg-brand py-3 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
         >
           {submitting
-            ? "Ukladám…"
+            ? uploadPhase === "compress"
+              ? "Optimalizujem fotky…"
+              : uploadPhase === "images"
+                ? "Nahrávam fotky…"
+                : "Ukladám…"
             : isEdit
               ? "Uložiť zmeny"
               : "Vytvoriť produkt"}
