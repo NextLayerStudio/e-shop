@@ -20,6 +20,7 @@
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
     "browser-image-compression": "^2.0.2",
+    "bysquare": "^4.0.0",
     "crc-32": "^1.2.2",
     "jose": "^6.2.2",
     "luxon": "^3.7.2",
