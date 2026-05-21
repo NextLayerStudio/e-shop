@@ -9,7 +9,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200/60 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 md:px-6">
-        <Logo />
+        <Logo size="nav" />
 
         <nav className="hidden items-center gap-2 md:flex">
           <NavbarNavLinks />

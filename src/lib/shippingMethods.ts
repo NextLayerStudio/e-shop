@@ -7,20 +7,13 @@ export const SHIPPING_METHODS = [
     id: "packeta-pickup",
     label: "Packeta – výdajné miesto (Z-Box / pobočka)",
     feeCents: 390,
-    description:
-      "Po pripojení Packeta API zákazník vyberie presné miesto; cena môže byť upravená.",
+    description: "Vyber si Z-Box alebo pobočku Packeta vo svojom okolí.",
   },
   {
     id: "packeta-home",
     label: "Packeta – doručenie na adresu",
     feeCents: 490,
-    description: "Placeholder cena do integrácie s Packeta.",
-  },
-  {
-    id: "personal",
-    label: "Osobný odber",
-    feeCents: 0,
-    description: "Dohodnúť po objednaní.",
+    description: "Doručenie kuriérom priamo na tvoju adresu (1–2 pracovné dni).",
   },
 ] as const;
 

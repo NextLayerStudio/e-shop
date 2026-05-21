@@ -12,18 +12,22 @@ import {
   getShippingFeeCentsVerified,
   getShippingMethodById,
 } from "@/lib/shippingMethods";
+import { generatePaymentQR } from "@/lib/pay-by-square";
+import { isRateLimited, getClientIp } from "@/lib/rate-limit";
 import { sendOrderConfirmationEmail, emailResultMessage } from "@/lib/email";
 
 export const runtime = "nodejs";
+
+const ORDER_RATE_CONFIG = { windowMs: 60_000, max: 5 };
 
 const orderSchema = z.object({
   customerName: z.string().min(2).max(120),
   customerEmail: z.string().email(),
   customerPhone: z.string().max(40).optional().or(z.literal("")),
-  address: z.string().min(2).max(200),
+  address: z.string().min(1).max(200),
   city: z.string().min(1).max(120),
-  postalCode: z.string().min(3).max(20),
-  country: z.string().min(2).max(80),
+  postalCode: z.string().min(1).max(20),
+  country: z.string().min(1).max(80),
   note: z.string().max(2000).optional().or(z.literal("")),
   promoCode: z.string().max(40).optional().or(z.literal("")),
   shippingMethodId: z.string().min(1).max(80),
@@ -36,6 +40,11 @@ const orderSchema = z.object({
     )
     .min(1)
     .max(100),
+  // Packeta výdajné miesto — voliteľné
+  packetaPointId: z.string().max(80).nullable().optional(),
+  packetaPointName: z.string().max(200).nullable().optional(),
+  packetaPointAddress: z.string().max(300).nullable().optional(),
+  packetaIsoCountry: z.string().max(10).nullable().optional(),
 });
 
 function generateOrderNumber(): string {
@@ -47,6 +56,15 @@ function generateOrderNumber(): string {
 }
 
 export async function POST(req: Request) {
+  // Rate limiting — max 5 objednávok za minútu z jednej IP
+  const ip = getClientIp(req);
+  if (isRateLimited(`create-order:${ip}`, ORDER_RATE_CONFIG)) {
+    return NextResponse.json(
+      { error: "Príliš veľa pokusov. Skúste neskôr." },
+      { status: 429 }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -149,6 +167,36 @@ export async function POST(req: Request) {
 
   const orderNumber = generateOrderNumber();
 
+  // Pay by Square QR — IBAN je voliteľný; ak nie je nastavený, QR sa proste nevytvorí
+  const iban = process.env.PAYMENT_IBAN ?? "";
+  const swift = process.env.PAYMENT_SWIFT ?? "";
+  const recipientName = process.env.PAYMENT_RECIPIENT_NAME ?? "";
+
+  // Variabilný symbol — len číslice z čísla objednávky (napr. "2026-001234" → "2026001234")
+  const variableSymbol = orderNumber.replace(/\D/g, "");
+
+  let qrCodeDataUrl: string | null = null;
+  if (iban) {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7);
+
+    try {
+      const qrResult = await generatePaymentQR({
+        amount: totalCents / 100,
+        iban,
+        swift,
+        variableSymbol,
+        message: `Objednavka ${orderNumber}`,
+        recipient: recipientName,
+        dueDate: dueDate.toISOString().slice(0, 10),
+      });
+      qrCodeDataUrl = qrResult.qrCodeDataUrl;
+    } catch (err) {
+      console.error("[order] QR generation failed:", err);
+      // QR zlyhalo — objednávka sa napriek tomu vytvorí, zákazník môže platiť manuálne
+    }
+  }
+
   const order = await prisma.$transaction(async (tx) => {
     const created = await tx.order.create({
       data: {
@@ -166,8 +214,13 @@ export async function POST(req: Request) {
         shippingCents: shippingFee,
         shippingMethodId: data.shippingMethodId,
         shippingLabel: shippingMeta.label,
-        promoCodeId: promoId,
+        ...(promoId ? { promoCode: { connect: { id: promoId } } } : {}),
         promoSnapshot,
+        qrCodeDataUrl,
+        packetaPointId: data.packetaPointId ?? null,
+        packetaPointName: data.packetaPointName ?? null,
+        packetaPointAddress: data.packetaPointAddress ?? null,
+        packetaIsoCountry: data.packetaIsoCountry ?? null,
         items: {
           create: data.items.map((item) => {
             const p = productMap.get(item.productId)!;
@@ -207,8 +260,18 @@ export async function POST(req: Request) {
     totalCents,
   });
 
-  const payload: { orderNumber: string } & Record<string, unknown> = {
+  const payload: {
+    orderNumber: string;
+    qrCodeDataUrl: string | null;
+    iban: string;
+    variableSymbol: string;
+    totalCents: number;
+  } & Record<string, unknown> = {
     orderNumber: order.orderNumber,
+    qrCodeDataUrl: order.qrCodeDataUrl ?? null,
+    iban,
+    variableSymbol,
+    totalCents,
   };
   if (process.env.NODE_ENV === "development") {
     if (emailResult.ok) {

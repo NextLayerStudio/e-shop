@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
 import { ProductImage } from "./ProductImage";
+import { ProductCardAddToCartButton } from "./ProductCardAddToCartButton";
 
 export type ProductCardData = {
   id: string;
@@ -44,16 +45,19 @@ export function ProductCard({
           </p>
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-3 pt-2">
+        <div className="mt-auto flex flex-col gap-3 pt-2">
           <span className="text-lg font-bold text-neutral-900">
             {formatPrice(product.priceCents)}
           </span>
-          <Link
-            href={`/produkty/${product.slug}`}
-            className="rounded-full bg-brand px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-dark"
-          >
-            {ctaLabel}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <ProductCardAddToCartButton productId={product.id} />
+            <Link
+              href={`/produkty/${product.slug}`}
+              className="rounded-full bg-brand px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-dark"
+            >
+              {ctaLabel}
+            </Link>
+          </div>
         </div>
       </div>
     </article>

@@ -134,6 +134,22 @@ model Order {
   /// Snapshot of the entered code at checkout (for history if promo is deleted)
   promoSnapshot   String?
 
+  /// Pay by Square QR kód ako base64 data URL (generovaný pri vytvorení objednávky)
+  qrCodeDataUrl   String?      @db.Text
+
+  // Packeta — výdajné miesto (vyplní zákazník pri checkouts)
+  packetaPointId      String?
+  packetaPointName    String?
+  packetaPointAddress String?
+  packetaIsoCountry   String?   // SK / CZ
+
+  // Packeta — fulfillment (vyplní admin po zaplatení)
+  packetaPacketId         String?  @unique
+  packetaTrackingNumber   String?
+  packetaStatus           String?  // created | label_ready | error
+  packetaCreatedAt        DateTime?
+  packetaError            String?  @db.Text
+
   status          OrderStatus  @default(NEW)
 
   items           OrderItem[]

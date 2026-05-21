@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/Logo";
 
 const links = [
   { href: "/admin", label: "Prehľad", icon: "dashboard" },
@@ -18,12 +19,7 @@ export function AdminSidebar() {
   return (
     <aside className="hidden w-60 flex-shrink-0 border-r border-neutral-200 bg-white md:block">
       <div className="border-b border-neutral-200 px-5 py-5">
-        <Link
-          href="/admin"
-          className="inline-flex items-center justify-center rounded-lg bg-brand px-3 py-2 font-bold text-white"
-        >
-          iknow3D
-        </Link>
+        <Logo href="/admin" size="sm" />
         <p className="mt-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
           Admin panel
         </p>

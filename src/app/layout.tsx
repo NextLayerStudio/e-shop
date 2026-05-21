@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   },
   description:
     "iknow3D – kvalitné 3D výtlačky, doplnky a tlač na mieru. Objednávajte priamo z e-shopu.",
+  icons: {
+    icon: [{ url: "/LOGO.webp", type: "image/webp" }],
+  },
 };
 
 export default function RootLayout({

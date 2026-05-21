@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice, formatDateTime } from "@/lib/format";
 import { OrderStatusSelect } from "@/components/admin/OrderStatusSelect";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
+import { PacketaPanel } from "@/components/admin/PacketaPanel";
+import { getPacketaConfig } from "@/lib/packeta/client";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin – Objednávka" };
@@ -25,6 +27,11 @@ export default async function AdminOrderDetailPage({
     (s, it) => s + it.unitPriceCents * it.quantity,
     0
   );
+
+  const packetaConfigured = getPacketaConfig().configured;
+  const isPacketaShipping =
+    order.shippingMethodId === "packeta-pickup" ||
+    order.shippingMethodId === "packeta-home";
 
   return (
     <div className="space-y-6">
@@ -148,14 +155,45 @@ export default async function AdminOrderDetailPage({
 
           <div className="rounded-2xl bg-white p-5 ring-1 ring-neutral-200">
             <h2 className="text-base font-semibold">Doručenie</h2>
-            <p className="mt-3 text-sm leading-relaxed">
-              {order.address}
-              <br />
-              {order.postalCode} {order.city}
-              <br />
-              {order.country}
-            </p>
+            {order.shippingLabel && (
+              <p className="mt-1 text-xs font-medium text-neutral-500">
+                {order.shippingLabel}
+              </p>
+            )}
+            {order.packetaPointName ? (
+              <div className="mt-3 text-sm leading-relaxed">
+                <p className="font-medium">{order.packetaPointName}</p>
+                {order.packetaPointAddress && (
+                  <p className="text-neutral-500">{order.packetaPointAddress}</p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed">
+                {order.address}
+                <br />
+                {order.postalCode} {order.city}
+                <br />
+                {order.country}
+              </p>
+            )}
           </div>
+
+          {/* Packeta panel — zobrazí sa len pre Packeta dopravu */}
+          {isPacketaShipping && (
+            <PacketaPanel
+              orderId={order.id}
+              orderNumber={order.orderNumber}
+              orderStatus={order.status}
+              hasPickupPoint={!!order.packetaPointId}
+              pickupPointName={order.packetaPointName ?? null}
+              pickupPointAddress={order.packetaPointAddress ?? null}
+              packetaConfigured={packetaConfigured}
+              packetaPacketId={order.packetaPacketId ?? null}
+              packetaTrackingNumber={order.packetaTrackingNumber ?? null}
+              packetaStatus={order.packetaStatus ?? null}
+              packetaError={order.packetaError ?? null}
+            />
+          )}
 
           {order.note && (
             <div className="rounded-2xl bg-white p-5 ring-1 ring-neutral-200">

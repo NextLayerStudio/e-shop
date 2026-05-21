@@ -51,6 +51,84 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** Farby ako `src/app/globals.css` (#brand / accent). Všetko inline kvôli email klientom. */
+const EB = {
+  brand: "#2DAEEC",
+  brandDark: "#1F8FC9",
+  accent: "#F08A3E",
+  bgPage: "#fafafa",
+  surface: "#ffffff",
+  border: "#e8e8e8",
+  text: "#171717",
+  muted: "#737373",
+  tint: "#e8f4fb",
+  warmTint: "#fff5ed",
+};
+
+function chipHtml(text: string): string {
+  return `<span style="display:inline-block;background:${EB.tint};color:${EB.brandDark};font-weight:800;font-size:13px;padding:8px 14px;border-radius:999px;letter-spacing:0.02em;">${escapeHtml(text)}</span>`;
+}
+
+function primaryCtaHtml(href: string, label: string): string {
+  const h = escapeHtml(href);
+  const l = escapeHtml(label);
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0 6px;"><tr><td bgcolor="${EB.brand}" style="border-radius:999px;background:${EB.brand};">
+<a href="${h}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 28px;color:#ffffff !important;text-decoration:none;font-weight:700;font-size:14px;line-height:1.2;">${l}</a>
+</td></tr></table>`;
+}
+
+/** Jednotný vzhľad mailov ako web (brand pruh, kartová hrana, pätička). */
+function wrapCustomerEmail(opts: {
+  baseUrl: string;
+  /** Préheader v náhľade schránky */
+  preheader?: string;
+  innerHtml: string;
+  hideAutoDisclaimer?: boolean;
+}): string {
+  const base = escapeHtml(opts.baseUrl.replace(/\/$/, ""));
+  const baseHrefRaw = opts.baseUrl.replace(/\/$/, "");
+  const baseHrefEsc = escapeHtml(baseHrefRaw);
+  const pre =
+    (opts.preheader?.trim().length ?? 0) > 0
+      ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;"><span>${escapeHtml((opts.preheader ?? "").slice(0, 100))}</span></div>`
+      : "";
+  const auto =
+    opts.hideAutoDisclaimer === true ? "" : `<p style="margin:0 0 10px;">Automatické potvrdenie z nášho e-shopu.</p>`;
+
+  return `<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background:${EB.bgPage};color:${EB.text};-webkit-font-smoothing:antialiased;">
+  ${pre}
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${EB.bgPage};padding:26px 10px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;border-radius:20px;overflow:hidden;border:1px solid ${EB.border};background:${EB.surface};box-shadow:0 14px 40px rgba(23,23,23,0.07);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+        <tr><td bgcolor="${EB.brand}" style="padding:21px 22px;background:${EB.brand};border-bottom:4px solid ${EB.accent};">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+            <td style="vertical-align:middle;color:#ffffff;">
+              <span style="font-size:21px;font-weight:800;letter-spacing:-0.04em;line-height:1;display:block;">iknow<strong style="font-weight:900;">3D</strong></span>
+              <div style="font-size:12px;color:rgba(255,255,255,0.9);margin-top:6px;font-weight:600;">3D výtlačky &amp; tlač na mieru</div>
+            </td>
+            <td align="right" style="vertical-align:middle;white-space:nowrap;"><a href="${baseHrefEsc}" style="display:inline-block;padding:9px 15px;font-size:12px;font-weight:700;color:#ffffff !important;text-decoration:none;border-radius:999px;border:1px solid rgba(255,255,255,0.52);">Obchod</a></td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:28px 22px;font-size:15px;line-height:1.58;color:${EB.text};">
+          ${opts.innerHtml}
+        </td></tr>
+        <tr><td style="padding:16px 22px;background:#f9fafb;border-top:1px solid ${EB.border};font-size:12px;color:${EB.muted};line-height:1.55;">
+          ${auto}
+          <p style="margin:0;"><strong style="color:${EB.text};">iknow3D</strong> · <a href="${baseHrefEsc}" style="color:${EB.brandDark};font-weight:700;text-decoration:none;">${base.replace(/^https?:\/\//, "")}</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 /** Verejná základná URL e-shopu (odkazy v emailoch). */
 export function getPublicSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -119,47 +197,57 @@ export async function sendOrderConfirmationEmail(
     .map(
       (ln) =>
         `<tr>
-          <td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(ln.productName)}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${ln.quantity}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${formatPrice(ln.unitPriceCents)}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-weight:600">${formatPrice(ln.lineTotalCents)}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid ${EB.border};font-size:14px;line-height:1.45;color:${EB.text};">${escapeHtml(ln.productName)}</td>
+          <td style="padding:12px 8px;border-bottom:1px solid ${EB.border};text-align:center;font-weight:700;font-size:14px;color:${EB.text};">${ln.quantity}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid ${EB.border};text-align:right;font-size:14px;line-height:1.45;color:${EB.muted};">${formatPrice(ln.unitPriceCents)}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid ${EB.border};text-align:right;font-weight:700;font-size:14px;color:${EB.text};">${formatPrice(ln.lineTotalCents)}</td>
         </tr>`
     )
     .join("");
 
   const discountRow =
     input.discountCents > 0
-      ? `<tr><td colspan="3" style="padding:8px;text-align:right">Zľava</td><td style="padding:8px;text-align:right">−${formatPrice(input.discountCents)}</td></tr>`
+      ? `<tr>
+          <td colspan="3" style="padding:12px 10px;background:${EB.warmTint};border-bottom:1px solid ${EB.border};text-align:right;font-size:13px;font-weight:800;color:${EB.accent};">Zľava</td>
+          <td style="padding:12px 10px;background:${EB.warmTint};border-bottom:1px solid ${EB.border};text-align:right;font-weight:900;font-size:14px;color:${EB.accent};">−${formatPrice(input.discountCents)}</td>
+        </tr>`
       : "";
 
-  const html = `<!DOCTYPE html>
-<html lang="sk">
-<head><meta charset="utf-8" /></head>
-<body style="font-family:system-ui,Segoe UI,sans-serif;line-height:1.5;color:#171717;max-width:560px;margin:0 auto;padding:24px;">
-  <p>Ahoj ${escapeHtml(input.customerName)},</p>
-  <p><strong>Ďakujeme za objednávku!</strong></p>
-  <p>Číslo objednávky: <strong>${escapeHtml(input.orderNumber)}</strong></p>
-  <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
-    <thead>
-      <tr style="border-bottom:2px solid #ddd">
-        <th style="text-align:left;padding:8px">Produkt</th>
-        <th style="text-align:center;padding:8px">Ks</th>
-        <th style="text-align:right;padding:8px">Cena / ks</th>
-        <th style="text-align:right;padding:8px">Spolu</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-    <tfoot style="font-size:14px">
-      <tr><td colspan="3" style="padding:8px;text-align:right;padding-top:12px">Medzisúčet</td><td style="padding:8px;text-align:right;padding-top:12px">${formatPrice(input.subtotalCents)}</td></tr>
-      ${discountRow}
-      <tr><td colspan="3" style="padding:8px;text-align:right">Doprava (${escapeHtml(input.shippingLabel)})</td><td style="padding:8px;text-align:right">${formatPrice(input.shippingCents)}</td></tr>
-      <tr><td colspan="3" style="padding:12px 8px;text-align:right;font-weight:700;font-size:16px">Celkom</td><td style="padding:12px 8px;text-align:right;font-weight:700;font-size:16px">${formatPrice(input.totalCents)}</td></tr>
-    </tfoot>
+  const innerOrder = `
+  <p style="margin:0 0 10px;">Ahoj <strong>${escapeHtml(input.customerName)}</strong>,</p>
+  <p style="margin:0 0 14px;font-size:18px;line-height:1.35;color:${EB.text};"><strong style="color:${EB.brandDark};">Ďakujeme za objednávku!</strong></p>
+  <p style="margin:0 0 18px;">Číslo objednávky ${chipHtml(input.orderNumber)}</p>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:6px 0 14px;border:1px solid ${EB.border};border-radius:14px;overflow:hidden;border-collapse:separate;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+    <tr style="background:${EB.tint};">
+      <th align="left" style="padding:11px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;">Produkt</th>
+      <th align="center" style="padding:11px 8px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;width:44px;">Ks</th>
+      <th align="right" style="padding:11px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;">Cena / ks</th>
+      <th align="right" style="padding:11px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;">Spolu</th>
+    </tr>
+    ${rows}
+    <tr>
+      <td colspan="3" style="padding:12px 10px;text-align:right;font-size:14px;color:${EB.muted};border-top:1px solid ${EB.border};"><span style="color:${EB.text};font-weight:600;">Medzisúčet</span></td>
+      <td style="padding:12px 10px;text-align:right;font-weight:700;font-size:14px;border-top:1px solid ${EB.border};color:${EB.text};">${formatPrice(input.subtotalCents)}</td>
+    </tr>
+    ${discountRow}
+    <tr>
+      <td colspan="3" style="padding:10px;text-align:right;font-size:13px;color:${EB.muted};">Doprava <span style="color:${EB.text};font-weight:600;">(${escapeHtml(input.shippingLabel)})</span></td>
+      <td style="padding:10px;text-align:right;font-weight:700;font-size:14px;color:${EB.text};">${formatPrice(input.shippingCents)}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="padding:15px 10px;text-align:right;font-size:16px;font-weight:900;color:${EB.text};border-top:2px solid ${EB.brand};background:${EB.surface};">Celkom</td>
+      <td style="padding:15px 10px;text-align:right;font-size:18px;font-weight:900;color:${EB.brandDark};border-top:2px solid ${EB.brand};background:${EB.surface};">${formatPrice(input.totalCents)}</td>
+    </tr>
   </table>
-  <p><a href="${orderLink}" style="display:inline-block;margin-top:8px;color:#0369a1">Zobraziť súhrn objednávky</a></p>
-  <p style="margin-top:24px;font-size:13px;color:#737373">Toto je automatická správa. Ak si objednávku nevytváral/a, ignoruj email.</p>
-</body>
-</html>`;
+  ${primaryCtaHtml(orderLink, "Zobraziť súhrn objednávky")}
+  <p style="margin:10px 0 0;font-size:13px;color:${EB.muted};line-height:1.55;">Ak si objednávku nevytváral/a, túto správu môžeš ignorovať.</p>
+  `.trimStart();
+
+  const html = wrapCustomerEmail({
+    baseUrl: base,
+    preheader: `Objednávka ${input.orderNumber} — ${formatPrice(input.totalCents)}`,
+    innerHtml: innerOrder,
+  });
 
   const { data, error } = await resend.emails.send({
     from,
@@ -200,18 +288,21 @@ export async function sendCustomPrintReceivedEmail(
   }
 
   const base = getPublicSiteUrl();
+  const tlacUrl = `${base}/tlac-na-mieru`;
 
-  const html = `<!DOCTYPE html>
-<html lang="sk">
-<head><meta charset="utf-8" /></head>
-<body style="font-family:system-ui,Segoe UI,sans-serif;line-height:1.5;color:#171717;max-width:520px;margin:0 auto;padding:24px;">
-  <p>Ahoj ${escapeHtml(input.customerName)},</p>
-  <p><strong>Dostali sme tvoju požiadavku na tlač na mieru.</strong></p>
-  <p>Číslo požiadavky: <strong>${escapeHtml(input.requestNumber)}</strong></p>
-  <p>Odpovieme čo najskôr na tento email. Ďalší postup doladíme priamo s tebou.</p>
-  <p style="margin-top:20px"><a href="${base}/tlac-na-mieru" style="color:#0369a1">${base}/tlac-na-mieru</a></p>
-</body>
-</html>`;
+  const innerCustomPrint = `
+  <p style="margin:0 0 10px;">Ahoj <strong>${escapeHtml(input.customerName)}</strong>,</p>
+  <p style="margin:0 0 14px;font-size:18px;line-height:1.35;"><strong style="color:${EB.brandDark};">Dostali sme tvoju požiadavku</strong> na tlač na mieru.</p>
+  <p style="margin:0 0 18px;">Referenčné číslo: ${chipHtml(input.requestNumber)}</p>
+  <p style="margin:0 0 22px;padding:17px 18px;border-radius:14px;background:${EB.tint};border:1px solid ${EB.border};font-size:14px;line-height:1.55;color:${EB.text};">Odpovieme čo najskôr na tento email (obvykle do 48 hodín). Materiál, termín a dopravu doladíme priamo s tebou.</p>
+  ${primaryCtaHtml(tlacUrl, "Stránka tlače na mieru")}
+  `.trimStart();
+
+  const html = wrapCustomerEmail({
+    baseUrl: base,
+    preheader: `Požiadavka ${input.requestNumber} — prijatá`,
+    innerHtml: innerCustomPrint,
+  });
 
   const { data, error } = await resend.emails.send({
     from,
@@ -259,27 +350,31 @@ export async function sendCustomPrintQuoteEmail(
   const msg = input.customerMessage?.trim() ?? "";
   const messageBlock =
     msg.length > 0
-      ? `<div style="margin:18px 0;padding:14px 16px;border-radius:12px;background:#f4f4f5;border:1px solid #e4e4e7;"><p style="margin:0;white-space:pre-line">${escapeHtml(
+      ? `<div style="margin:16px 0;padding:18px;border-radius:14px;background:${EB.tint};border:1px solid ${EB.border};border-left:4px solid ${EB.brand};"><p style="margin:0;white-space:pre-line;font-size:14px;line-height:1.55;color:${EB.text};">${escapeHtml(
           msg
         )}</p></div>`
-      : `<p>Orientačná cena doladená podľa tvojho popisu a prílohy. Podrobnosti ešte môžeme upraviť — odpíš prosím na tento email.</p>`;
+      : `<p style="margin:0 0 16px;padding:15px 17px;border-radius:12px;background:${EB.warmTint};border:1px solid ${EB.border};font-size:14px;line-height:1.55;color:${EB.text};">Orientačná cena podľa tvojho popisu a prílohy. Detaily ešte spresníme — stačí odpovedať na tento email.</p>`;
 
-  const html = `<!DOCTYPE html>
-<html lang="sk">
-<head><meta charset="utf-8" /></head>
-<body style="font-family:system-ui,Segoe UI,sans-serif;line-height:1.5;color:#171717;max-width:520px;margin:0 auto;padding:24px;">
-  <p>Ahoj ${escapeHtml(input.customerName)},</p>
-  <p><strong>Posielame ti cenový návrh</strong> k tvojej požiadavke na tlač na mieru.</p>
-  <p>Číslo požiadavky: <strong>${escapeHtml(input.requestNumber)}</strong></p>
+  const tlacUrl = `${base}/tlac-na-mieru`;
+
+  const innerQuote = `
+  <p style="margin:0 0 10px;">Ahoj <strong>${escapeHtml(input.customerName)}</strong>,</p>
+  <p style="margin:0 0 8px;font-size:18px;line-height:1.35;"><strong style="color:${EB.brandDark};">Cenový návrh</strong> · tlač na mieru</p>
+  <p style="margin:0 0 14px;color:${EB.muted};font-size:14px;">Požiadavka ${chipHtml(input.requestNumber)}</p>
   ${messageBlock}
-  <p style="font-size:18px;margin-top:20px;"><strong>Orientačná cena:</strong> <span style="color:#0a0">${formatPrice(
-    input.priceCents
-  )}</span></p>
-  <p style="font-size:14px;color:#52525b">Cena platí ako návrh; finálnu sumu potvrdíme po doplnení detailov alebo pri akceptácii.</p>
-  <p style="margin-top:20px"><a href="${base}/tlac-na-mieru" style="color:#0369a1">${base}</a></p>
-  <p style="margin-top:24px;font-size:13px;color:#737373">iknow3D — tento email poslala správa požiadavky.</p>
-</body>
-</html>`;
+  <div style="margin:22px 0 10px;padding:22px 18px;border-radius:16px;background:${EB.warmTint};border:1px solid ${EB.border};text-align:center;">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;font-weight:800;color:${EB.muted};">Orientačná cena</div>
+    <div style="margin-top:8px;font-size:30px;font-weight:900;letter-spacing:-0.03em;line-height:1.1;color:${EB.brandDark};">${formatPrice(input.priceCents)}</div>
+  </div>
+  <p style="margin:0 0 4px;font-size:13px;color:${EB.muted};line-height:1.55;">Údaje slúžia ako cenový návrh — finálnu sumu potvrdíme po doplnení detailov alebo pri akceptácii.</p>
+  ${primaryCtaHtml(tlacUrl, "Otvoriť iknow3D")}
+  `.trimStart();
+
+  const html = wrapCustomerEmail({
+    baseUrl: base,
+    preheader: `Cenový návrh ${input.requestNumber} — ${formatPrice(input.priceCents)}`,
+    innerHtml: innerQuote,
+  });
 
   const { data, error } = await resend.emails.send({
     from,

@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { categoryBadgeLabel, showPopularBadge } from "@/lib/productDisplay";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { ProductDescriptionExpand } from "@/components/ProductDescriptionExpand";
 import type { ProductCategory } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -136,15 +137,10 @@ export default async function ProductDetailPage({
             {product.name}
           </h1>
 
-          {product.shortDescription && (
-            <p className="text-base leading-relaxed text-neutral-700">
-              {product.shortDescription}
-            </p>
-          )}
-
-          <div className="prose prose-sm max-w-none whitespace-pre-line text-neutral-700">
-            {product.description}
-          </div>
+          <ProductDescriptionExpand
+            shortDescription={product.shortDescription}
+            description={product.description}
+          />
 
           <div className="flex items-center gap-2 text-sm">
             <span
