@@ -72,10 +72,17 @@ ADMIN_SESSION_SECRET="náhodný reťazec, min. 32 znakov"
 Transakčné emaily používajú **[Resend](https://resend.com)** (`resend` SDK v `src/lib/email.ts`):
 
 - **`RESEND_API_KEY`** – API kľúč z Resend dashbordu.
-- **`EMAIL_FROM`** – napr. `iknow3D <objednavky@tvoja-domena.sk>` — adresa alebo doména musí byť v Resend **overená** (alebo použite testovacie odoslanie podľa dokumentácie Resend).
-- **`NEXT_PUBLIC_SITE_URL`** *(odporúčané)* – absolútna URL e-shopu (odkazy v emailoch na súhrn objednávky). Na Verceli sa vie použiť `VERCEL_URL`, ale pre produkciu je lepší vlastný náhľad.
+- **`EMAIL_FROM`** – napr. `iknow3D <objednavky@know3d.sk>` — doména v adrese musí byť v Resend **overená** (DNS). **Nepoužívaj `@resend.dev`** na produkcii pre zákazníkov — Resend to typicky blokne alebo doručí len na vlastný tímový email.
+- **`NEXT_PUBLIC_SITE_URL`** *(odporúčané na Verceli)* – napr. `https://know3d.sk`. Ak chýba, použije sa automaticky host z `VERCEL_URL`, ale vlastná doména je spoľahlivejšia pre odkazy v mailoch.
 
-Bez nastaveného kľúča sa aplikácia správa rovnako, len email pri **vytvorení objednávky** a pri **„Tlači na mieru“** neodosiela (lokálne v konzole uvidíš krátku informáciu).
+Bez `RESEND_API_KEY` alebo bez `EMAIL_FROM` sa údaje (objednávka / požiadavka) uložia, ale mail sa neodosiela — **vo Vercel → tvoj projekt → Logs** uvidíš riadok `[email]` s tým, či premenné „CHÝBA“.
+
+#### Viacnasadenie na **Vercel**
+
+1. Otvor **Project → Settings → Environment Variables**.
+2. Pridaj **`RESEND_API_KEY`**, **`EMAIL_FROM`**, **`NEXT_PUBLIC_SITE_URL`**, ako aj DB a admin (`DATABASE_URL`, `ADMIN_*`).
+3. Uisti sa, že sú priradené k prostrediu, ktoré používaš (**Production**, prípadne aj **Preview** na test deployov).
+4. Po pridaní alebo zmene premenných urob **`Redeploy`** (Deployments → … → Redeploy) — inak bežné nasadenie môže stále čítať staré env bez kľúčov.
 
 > **Tip:** vygenerovať tajný kľúč:
 > ```bash

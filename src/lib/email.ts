@@ -7,6 +7,15 @@ import { Resend } from "resend";
 
 import { formatPrice } from "@/lib/format";
 
+/** Viditeľné vo Vercel → Logs (Runtime) — bez API kľúčov. */
+function logEmailConfigSkip(context: string, detail: string): void {
+  const hasKey = Boolean(process.env.RESEND_API_KEY?.trim());
+  const hasFrom = Boolean(process.env.EMAIL_FROM?.trim());
+  console.warn(
+    `[email] ${context}: ${detail} | RESEND_API_KEY=${hasKey ? "ok" : "CHÝBA"}, EMAIL_FROM=${hasFrom ? "ok" : "CHÝBA"} | Na Verceli: Project → Settings → Environment Variables (Production) + Redeploy`
+  );
+}
+
 function serializeResendError(error: unknown): string {
   if (error === null || error === undefined) return "Neznáma chyba Resend.";
   if (typeof error === "string") return error;
@@ -56,12 +65,9 @@ export function getPublicSiteUrl(): string {
 function getFromAddress(): string | null {
   const from = process.env.EMAIL_FROM?.trim();
   if (!from?.length) return null;
-  if (
-    /@resend\.dev\b/i.test(from) &&
-    process.env.NODE_ENV === "development"
-  ) {
+  if (/@resend\.dev\b/i.test(from)) {
     console.warn(
-      "[email] EMAIL_FROM stále obsahuje @resend.dev — v .env použi vlastnú doménu (napr. know3d@know3d.sk) a reštartuj `npm run dev`."
+      "[email] EMAIL_FROM používa @resend.dev — doručenie zákazníkom väčšinou nie je povolené. Nastav adresu na vlastnej doméne (napr. know3d@know3d.sk overený v Resend)."
     );
   }
   return from;
@@ -102,9 +108,7 @@ export async function sendOrderConfirmationEmail(
   if (!resend || !from) {
     const detail =
       "Chýba RESEND_API_KEY alebo EMAIL_FROM v prostredí — email sa neodoslá.";
-    if (process.env.NODE_ENV === "development") {
-      console.info(`[email] ${detail}`);
-    }
+    logEmailConfigSkip("Objednávka", detail);
     return { ok: false, skipped: true, detail };
   }
 
@@ -170,7 +174,7 @@ export async function sendOrderConfirmationEmail(
     return { ok: false, error: errStr };
   }
 
-  if (process.env.NODE_ENV === "development" && data?.id) {
+  if (data?.id) {
     console.info("[email] Objednávka odoslaná, Resend id:", data.id);
   }
   return { ok: true, id: data?.id };
@@ -190,10 +194,8 @@ export async function sendCustomPrintReceivedEmail(
   const from = getFromAddress();
   if (!resend || !from) {
     const detail =
-      "Chýba RESEND_API_KEY alebo EMAIL_FROM — kontroluj .env a reštart `npm run dev`.";
-    if (process.env.NODE_ENV === "development") {
-      console.info(`[email] Tlač na mieru: ${detail}`);
-    }
+      "Chýba RESEND_API_KEY alebo EMAIL_FROM — lokálne .env alebo premenné na Verceli.";
+    logEmailConfigSkip("Tlač na mieru (prijatá)", detail);
     return { ok: false, skipped: true, detail };
   }
 
@@ -224,7 +226,7 @@ export async function sendCustomPrintReceivedEmail(
     return { ok: false, error: errStr };
   }
 
-  if (process.env.NODE_ENV === "development" && data?.id) {
+  if (data?.id) {
     console.info("[email] Tlač na mieru — odoslané, Resend id:", data.id);
   }
   return { ok: true, id: data?.id };
@@ -247,10 +249,8 @@ export async function sendCustomPrintQuoteEmail(
   const from = getFromAddress();
   if (!resend || !from) {
     const detail =
-      "Chýba RESEND_API_KEY alebo EMAIL_FROM — kontroluj .env a reštart servera.";
-    if (process.env.NODE_ENV === "development") {
-      console.info(`[email] Ponuka tláče: ${detail}`);
-    }
+      "Chýba RESEND_API_KEY alebo EMAIL_FROM — lokálne .env alebo premenné na Verceli.";
+    logEmailConfigSkip("Tlač na mieru (cenová ponuka)", detail);
     return { ok: false, skipped: true, detail };
   }
 
@@ -294,7 +294,7 @@ export async function sendCustomPrintQuoteEmail(
     return { ok: false, error: errStr };
   }
 
-  if (process.env.NODE_ENV === "development" && data?.id) {
+  if (data?.id) {
     console.info("[email] Cenová ponuka odoslaná, Resend id:", data.id);
   }
   return { ok: true, id: data?.id };
