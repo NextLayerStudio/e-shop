@@ -260,7 +260,7 @@ export function ShippingDopravaForm() {
               <span className="mt-0.5 block text-sm text-neutral-500">{m.description}</span>
             </span>
             <span className="flex-shrink-0 font-semibold text-neutral-900">
-              {m.feeCents === 0 ? "Zdarma" : formatPrice(m.feeCents)}
+              {formatPrice(m.feeCents)}
             </span>
           </label>
         ))}
