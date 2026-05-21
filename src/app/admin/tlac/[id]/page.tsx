@@ -88,6 +88,8 @@ export default async function AdminCustomPrintDetailPage({
 
           <CustomPrintAdminControls
             requestId={r.id}
+            requestNumber={r.requestNumber}
+            customerEmail={r.customerEmail}
             status={r.status}
             adminNote={r.adminNote ?? ""}
             quotedPriceEuros={

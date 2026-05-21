@@ -65,6 +65,18 @@ ADMIN_PASSWORD="silne-heslo"
 ADMIN_SESSION_SECRET="náhodný reťazec, min. 32 znakov"
 ```
 
+Úplný zoznam s voliteľným **Resend** nájdeš v [`.env.example`](./.env.example).
+
+### Email zákazníkom (Resend)
+
+Transakčné emaily používajú **[Resend](https://resend.com)** (`resend` SDK v `src/lib/email.ts`):
+
+- **`RESEND_API_KEY`** – API kľúč z Resend dashbordu.
+- **`EMAIL_FROM`** – napr. `iknow3D <objednavky@tvoja-domena.sk>` — adresa alebo doména musí byť v Resend **overená** (alebo použite testovacie odoslanie podľa dokumentácie Resend).
+- **`NEXT_PUBLIC_SITE_URL`** *(odporúčané)* – absolútna URL e-shopu (odkazy v emailoch na súhrn objednávky). Na Verceli sa vie použiť `VERCEL_URL`, ale pre produkciu je lepší vlastný náhľad.
+
+Bez nastaveného kľúča sa aplikácia správa rovnako, len email pri **vytvorení objednávky** a pri **„Tlači na mieru“** neodosiela (lokálne v konzole uvidíš krátku informáciu).
+
 > **Tip:** vygenerovať tajný kľúč:
 > ```bash
 > node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"

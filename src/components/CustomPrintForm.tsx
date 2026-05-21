@@ -62,14 +62,28 @@ export function CustomPrintForm() {
         method: "POST",
         body: formData,
       });
-      const data = await res.json();
+      const data = (await res.json()) as {
+        requestNumber?: string;
+        emailSent?: boolean;
+        emailIssue?: string;
+        resendEmailId?: string;
+        error?: string;
+      };
       if (!res.ok) {
         setError(data.error ?? "Nepodarilo sa odoslať požiadavku.");
         setSubmitting(false);
         return;
       }
+
+      let extra = "";
+      if (typeof data.emailIssue === "string" && data.emailIssue.length) {
+        extra = ` ⚠ Email sa neodoslal (dev): ${data.emailIssue}`;
+      } else if (data.emailSent && data.resendEmailId) {
+        extra = ` (Resend odoslané, id ${data.resendEmailId.slice(0, 12)}…)`;
+      }
+
       setSuccess(
-        `Ďakujeme! Tvoja požiadavka bola prijatá pod číslom ${data.requestNumber}. Odpovieme do 48 hodín.`
+        `Ďakujeme! Tvoja požiadavka bola prijatá pod číslom ${data.requestNumber}. Odpovieme do 48 hodín.${extra}`
       );
       form.reset();
       setFileName(null);

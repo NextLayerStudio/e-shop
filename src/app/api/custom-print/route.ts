@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendCustomPrintReceivedEmail, emailResultMessage } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { fileToBytes } from "@/lib/bytes";
 
@@ -70,5 +71,28 @@ export async function POST(req: Request) {
     },
   });
 
-  return NextResponse.json({ requestNumber });
+  const emailResult = await sendCustomPrintReceivedEmail({
+    to: customerEmail,
+    customerName,
+    requestNumber,
+  });
+
+  const payload: { requestNumber: string } & Record<string, unknown> = {
+    requestNumber,
+  };
+  if (process.env.NODE_ENV === "development") {
+    if (emailResult.ok) {
+      payload.emailSent = true;
+      if (emailResult.id) payload.resendEmailId = emailResult.id;
+    } else {
+      payload.emailSent = false;
+      const msg = emailResultMessage(emailResult);
+      if (msg) payload.emailIssue = msg;
+    }
+    if (!emailResult.ok) {
+      console.warn("[api/custom-print] Email problém:", emailResult);
+    }
+  }
+
+  return NextResponse.json(payload);
 }

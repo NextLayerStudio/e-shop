@@ -12,6 +12,7 @@ import {
   getShippingFeeCentsVerified,
   getShippingMethodById,
 } from "@/lib/shippingMethods";
+import { sendOrderConfirmationEmail, emailResultMessage } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -136,6 +137,16 @@ export async function POST(req: Request) {
 
   const totalCents = Math.max(0, subtotalCents - discountCents + shippingFee);
 
+  const lines = data.items.map((item) => {
+    const p = productMap.get(item.productId)!;
+    return {
+      productName: p.name,
+      quantity: item.quantity,
+      unitPriceCents: p.priceCents,
+      lineTotalCents: p.priceCents * item.quantity,
+    };
+  });
+
   const orderNumber = generateOrderNumber();
 
   const order = await prisma.$transaction(async (tx) => {
@@ -184,5 +195,34 @@ export async function POST(req: Request) {
     return created;
   });
 
-  return NextResponse.json({ orderNumber: order.orderNumber });
+  const emailResult = await sendOrderConfirmationEmail({
+    to: data.customerEmail.trim(),
+    customerName: data.customerName,
+    orderNumber: order.orderNumber,
+    shippingLabel: shippingMeta.label,
+    lines,
+    subtotalCents,
+    discountCents,
+    shippingCents: shippingFee,
+    totalCents,
+  });
+
+  const payload: { orderNumber: string } & Record<string, unknown> = {
+    orderNumber: order.orderNumber,
+  };
+  if (process.env.NODE_ENV === "development") {
+    if (emailResult.ok) {
+      payload.emailSent = true;
+      if (emailResult.id) payload.resendEmailId = emailResult.id;
+    } else {
+      payload.emailSent = false;
+      const msg = emailResultMessage(emailResult);
+      if (msg) payload.emailIssue = msg;
+    }
+    if (!emailResult.ok) {
+      console.warn("[api/orders] Email problém:", emailResult);
+    }
+  }
+
+  return NextResponse.json(payload);
 }
