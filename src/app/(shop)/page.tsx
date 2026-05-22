@@ -1,7 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { ProductCard, type ProductCardData } from "@/components/ProductCard";
-import { ProductImage } from "@/components/ProductImage";
 import { HomeFilters } from "@/components/HomeFilters";
 import { HomeHeroCarousel } from "@/components/HomeHeroCarousel";
 
@@ -51,23 +51,8 @@ async function getFeaturedProducts(sort: SortKey): Promise<ProductCardData[]> {
   }
 }
 
-async function getHitOfWeek() {
-  try {
-    return await prisma.product.findFirst({
-      where: { isActive: true, isHitOfWeek: true },
-      include: {
-        images: {
-          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
-          take: 1,
-          select: { id: true },
-        },
-      },
-    });
-  } catch (err) {
-    console.error("[home] getHitOfWeek failed:", err);
-    return null;
-  }
-}
+const HIT_OF_WEEK_TEXT =
+  "Táto nádherná a osobitá malá figúrka slona je plne pohyblivá. Od nôh, cez telo až po samotný chobot sa vie tento slon hýbať a otáčať. Hlava sa otáča dokonca o celých 360° takže na vás môže dohliadať zo všetkých strán, nech už je kdekoľvek.";
 
 async function getBottomGrid(): Promise<ProductCardData[]> {
   try {
@@ -120,10 +105,9 @@ export default async function HomePage({
       ? params.sort
       : "popular";
 
-  const [dbOk, featured, hit, bottomGrid] = await Promise.all([
+  const [dbOk, featured, bottomGrid] = await Promise.all([
     isDbReachable(),
     getFeaturedProducts(sort),
-    getHitOfWeek(),
     getBottomGrid(),
   ]);
 
@@ -178,12 +162,11 @@ export default async function HomePage({
               <span className="block text-white">od zákazníka</span>
             </h2>
             <p className="text-sm leading-relaxed text-neutral-300">
-              {hit?.shortDescription ??
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vehicula urna nec semper porta."}
+              {HIT_OF_WEEK_TEXT}
             </p>
             <div>
               <Link
-                href={hit ? `/produkty/${hit.slug}` : "/produkty"}
+                href="/tlac-na-mieru"
                 className="inline-flex items-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark"
               >
                 Pozrieť viac
@@ -192,10 +175,12 @@ export default async function HomePage({
           </div>
 
           <div className="relative aspect-[5/4] w-full bg-neutral-800 md:aspect-auto md:min-h-[320px]">
-            <ProductImage
-              imageId={hit?.images[0]?.id ?? null}
-              alt={hit?.name ?? "Hit týždňa"}
-              fallbackClassName="bg-neutral-800 text-neutral-700"
+            <Image
+              src="/customer_print.JPG"
+              alt="3D tlačený slon od zákazníka"
+              fill
+              className="object-cover object-center"
+              sizes="(min-width: 768px) 50vw, 100vw"
             />
           </div>
         </div>

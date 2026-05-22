@@ -43,12 +43,22 @@ export function emailResultMessage(r: EmailSendResult): string | null {
   return null;
 }
 
+const BRAND_NAME = "know3d";
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function brandMarkHtml(): string {
+  if (BRAND_NAME.toLowerCase().endsWith("3d")) {
+    const prefix = BRAND_NAME.slice(0, -2);
+    return `${escapeHtml(prefix)}<strong style="font-weight:900;">3d</strong>`;
+  }
+  return escapeHtml(BRAND_NAME);
 }
 
 /** Farby ako `src/app/globals.css` (#brand / accent). Všetko inline kvôli email klientom. */
@@ -109,7 +119,7 @@ function wrapCustomerEmail(opts: {
         <tr><td bgcolor="${EB.brand}" style="padding:21px 22px;background:${EB.brand};border-bottom:4px solid ${EB.accent};">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
             <td style="vertical-align:middle;color:#ffffff;">
-              <span style="font-size:21px;font-weight:800;letter-spacing:-0.04em;line-height:1;display:block;">iknow<strong style="font-weight:900;">3D</strong></span>
+              <span style="font-size:21px;font-weight:800;letter-spacing:-0.04em;line-height:1;display:block;">${brandMarkHtml()}</span>
               <div style="font-size:12px;color:rgba(255,255,255,0.9);margin-top:6px;font-weight:600;">3D výtlačky &amp; tlač na mieru</div>
             </td>
             <td align="right" style="vertical-align:middle;white-space:nowrap;"><a href="${baseHrefEsc}" style="display:inline-block;padding:9px 15px;font-size:12px;font-weight:700;color:#ffffff !important;text-decoration:none;border-radius:999px;border:1px solid rgba(255,255,255,0.52);">Obchod</a></td>
@@ -120,7 +130,7 @@ function wrapCustomerEmail(opts: {
         </td></tr>
         <tr><td style="padding:16px 22px;background:#f9fafb;border-top:1px solid ${EB.border};font-size:12px;color:${EB.muted};line-height:1.55;">
           ${auto}
-          <p style="margin:0;"><strong style="color:${EB.text};">iknow3D</strong> · <a href="${baseHrefEsc}" style="color:${EB.brandDark};font-weight:700;text-decoration:none;">${base.replace(/^https?:\/\//, "")}</a></p>
+          <p style="margin:0;"><strong style="color:${EB.text};">${escapeHtml(BRAND_NAME)}</strong> · <a href="${baseHrefEsc}" style="color:${EB.brandDark};font-weight:700;text-decoration:none;">${base.replace(/^https?:\/\//, "")}</a></p>
         </td></tr>
       </table>
     </td></tr>
@@ -367,7 +377,7 @@ export async function sendCustomPrintQuoteEmail(
     <div style="margin-top:8px;font-size:30px;font-weight:900;letter-spacing:-0.03em;line-height:1.1;color:${EB.brandDark};">${formatPrice(input.priceCents)}</div>
   </div>
   <p style="margin:0 0 4px;font-size:13px;color:${EB.muted};line-height:1.55;">Údaje slúžia ako cenový návrh — finálnu sumu potvrdíme po doplnení detailov alebo pri akceptácii.</p>
-  ${primaryCtaHtml(tlacUrl, "Otvoriť iknow3D")}
+  ${primaryCtaHtml(tlacUrl, "Otvoriť know3d")}
   `.trimStart();
 
   const html = wrapCustomerEmail({
