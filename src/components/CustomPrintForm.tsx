@@ -143,7 +143,7 @@ export function CustomPrintForm() {
         <div className="flex flex-col">
           <div className="relative min-h-[280px] flex-1 overflow-hidden rounded-[1.75rem] bg-neutral-200 shadow-md ring-1 ring-neutral-300/60 lg:min-h-[360px]">
             <Image
-              src="/customer_print.JPG"
+              src="/customer_print.jpg"
               alt="3D tlačený slon od zákazníka"
               fill
               className="object-cover object-center"

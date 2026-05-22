@@ -31,7 +31,7 @@ export function TlacNaMieruHero() {
 
         <div className="relative mx-auto aspect-[5/4] w-full max-w-xl overflow-hidden rounded-3xl bg-neutral-900 ring-2 ring-white/10 lg:aspect-[16/13] lg:max-w-none">
           <Image
-            src="/customer_print.JPG"
+            src="/customer_print.jpg"
             alt="3D tlačený slon od zákazníka"
             fill
             className="object-cover object-center"

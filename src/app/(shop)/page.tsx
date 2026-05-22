@@ -176,7 +176,7 @@ export default async function HomePage({
 
           <div className="relative aspect-[5/4] w-full bg-neutral-800 md:aspect-auto md:min-h-[320px]">
             <Image
-              src="/customer_print.JPG"
+              src="/customer_print.jpg"
               alt="3D tlačený slon od zákazníka"
               fill
               className="object-cover object-center"
