@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { ProductCard, type ProductCardData } from "@/components/ProductCard";
+import { ProductImage } from "@/components/ProductImage";
 import { HomeFilters } from "@/components/HomeFilters";
 import { HomeHeroCarousel } from "@/components/HomeHeroCarousel";
 
@@ -51,8 +51,44 @@ async function getFeaturedProducts(sort: SortKey): Promise<ProductCardData[]> {
   }
 }
 
-const HIT_OF_WEEK_TEXT =
-  "Táto nádherná a osobitá malá figúrka slona je plne pohyblivá. Od nôh, cez telo až po samotný chobot sa vie tento slon hýbať a otáčať. Hlava sa otáča dokonca o celých 360° takže na vás môže dohliadať zo všetkých strán, nech už je kdekoľvek.";
+async function getHitOfWeek() {
+  try {
+    return await prisma.product.findFirst({
+      where: { isActive: true, isHitOfWeek: true },
+      include: {
+        images: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+  } catch (err) {
+    console.error("[home] getHitOfWeek failed:", err);
+    return null;
+  }
+}
+
+async function getMuchaProduct() {
+  try {
+    return await prisma.product.findUnique({
+      where: { slug: "pohybliva-mucha" },
+      select: {
+        slug: true,
+        name: true,
+        shortDescription: true,
+        images: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+  } catch (err) {
+    console.error("[home] getMuchaProduct failed:", err);
+    return null;
+  }
+}
 
 async function getBottomGrid(): Promise<ProductCardData[]> {
   try {
@@ -105,11 +141,18 @@ export default async function HomePage({
       ? params.sort
       : "popular";
 
-  const [dbOk, featured, bottomGrid] = await Promise.all([
+  const [dbOk, featured, hit, bottomGrid, mucha] = await Promise.all([
     isDbReachable(),
     getFeaturedProducts(sort),
+    getHitOfWeek(),
     getBottomGrid(),
+    getMuchaProduct(),
   ]);
+
+  const carouselImageIds = featured
+    .map((p) => p.primaryImageId)
+    .filter((id): id is string => id !== null)
+    .slice(0, 3);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
@@ -126,7 +169,7 @@ export default async function HomePage({
         </div>
       )}
 
-      <HomeHeroCarousel />
+      <HomeHeroCarousel imageIds={carouselImageIds} />
 
       {/* FILTERS */}
       <section className="mt-10">
@@ -152,35 +195,43 @@ export default async function HomePage({
 
       {/* HIT OF THE WEEK */}
       <section className="mt-12">
-        <div className="grid gap-0 overflow-hidden rounded-2xl bg-neutral-900 text-white shadow-sm md:grid-cols-2">
-          <div className="flex flex-col justify-center gap-4 p-6 md:p-10">
+        <div className="grid gap-0 overflow-hidden rounded-2xl shadow-sm md:grid-cols-[2fr_3fr]">
+          {/* Ľavý tmavý panel — rovnaký štýl ako carousel */}
+          <div className="flex min-h-[220px] flex-col justify-center gap-4 bg-neutral-900 p-7 text-white md:min-h-[300px] md:p-10">
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Hit týždňa
             </span>
             <h2 className="text-2xl font-bold leading-tight md:text-3xl">
-              <span className="text-accent">najpopulárnejší výtlačok</span>{" "}
-              <span className="block text-white">od zákazníka</span>
+              {hit ? (
+                hit.name
+              ) : (
+                <>
+                  <span className="text-accent">Najpopulárnejší</span>{" "}
+                  <span className="block">výtlačok</span>
+                </>
+              )}
             </h2>
             <p className="text-sm leading-relaxed text-neutral-300">
-              {HIT_OF_WEEK_TEXT}
+              {hit?.shortDescription ??
+                "Objavte náš najobľúbenejší produkt. Kvalitná 3D tlač, rýchle dodanie."}
             </p>
             <div>
               <Link
-                href="/tlac-na-mieru"
+                href={mucha ? `/produkty/${mucha.slug}` : hit ? `/produkty/${hit.slug}` : "/produkty"}
                 className="inline-flex items-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark"
               >
-                Pozrieť viac
+                Pozrieť produkt
               </Link>
             </div>
           </div>
 
-          <div className="relative aspect-[5/4] w-full bg-neutral-800 md:aspect-auto md:min-h-[320px]">
-            <Image
-              src="/customer_print.jpg"
-              alt="3D tlačený slon od zákazníka"
-              fill
-              className="object-cover object-center"
-              sizes="(min-width: 768px) 50vw, 100vw"
+          {/* Pravý svetlý panel s obrázkom produktu — rovnaký štýl ako carousel */}
+          <div className="relative min-h-[220px] overflow-hidden bg-neutral-100 md:min-h-[300px]">
+            <ProductImage
+              imageId={mucha?.images[0]?.id ?? hit?.images[0]?.id ?? featured[0]?.primaryImageId ?? null}
+              alt={mucha?.name ?? hit?.name ?? "Hit týždňa"}
+              className="object-cover"
+              fallbackClassName="bg-neutral-100 text-neutral-300"
             />
           </div>
         </div>
