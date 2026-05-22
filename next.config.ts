@@ -1,16 +1,20 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
-// process.cwd() — safe on Vercel (ESM config has no __dirname)
-const projectRoot = path.resolve(process.cwd());
+// Locally we set the project root explicitly so Next.js doesn't pick up
+// unrelated lockfiles from parent OneDrive folders. On Vercel we leave it
+// undefined — Vercel handles tracing itself, and passing paths can break
+// `modifyConfig`.
+const isVercel = !!process.env.VERCEL;
+const projectRoot = isVercel ? undefined : path.resolve(process.cwd());
 
 const nextConfig: NextConfig = {
-  // Tell Next.js this directory is the project root (avoids picking up
-  // unrelated lockfiles in parent OneDrive folders).
-  outputFileTracingRoot: projectRoot,
-  turbopack: {
-    root: projectRoot,
-  },
+  ...(projectRoot
+    ? {
+        outputFileTracingRoot: projectRoot,
+        turbopack: { root: projectRoot },
+      }
+    : {}),
   experimental: {
     serverActions: {
       bodySizeLimit: "30mb",
