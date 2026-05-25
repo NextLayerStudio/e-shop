@@ -5,7 +5,6 @@ const quickLinks = [
   { href: "/", label: "Domov" },
   { href: "/produkty", label: "Produkty" },
   { href: "/tlac-na-mieru", label: "Tlač na mieru" },
-  { href: "/kontakt", label: "Kontakt" },
 ];
 
 const cookieLinks = [
@@ -15,7 +14,6 @@ const cookieLinks = [
 
 const infoLinks = [
   { href: "/obchodne-podmienky", label: "Obchodné podmienky" },
-  { href: "/o-firme", label: "Informácie o firme" },
 ];
 
 export function Footer() {

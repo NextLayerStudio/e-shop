@@ -1,5 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { CookieConsent } from "@/components/CookieConsent";
+import { AnalyticsGate } from "@/components/AnalyticsGate";
 
 export default function ShopLayout({
   children,
@@ -11,6 +13,8 @@ export default function ShopLayout({
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
+      <CookieConsent />
+      <AnalyticsGate />
     </>
   );
 }
