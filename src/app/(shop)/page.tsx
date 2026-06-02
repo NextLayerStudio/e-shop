@@ -166,11 +166,9 @@ export default async function HomePage({
         <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <p className="font-semibold">Databáza nie je dostupná.</p>
           <p className="mt-1">
-            Pridaj <code className="rounded bg-white px-1 py-0.5">DATABASE_URL</code> do{" "}
-            <code className="rounded bg-white px-1 py-0.5">.env</code> (Neon connection
-            string) a spusti{" "}
-            <code className="rounded bg-white px-1 py-0.5">npm run db:push</code>. Bez DB
-            vidíš len prázdny layout.
+            Lokálne: <code className="rounded bg-white px-1 py-0.5">DATABASE_URL</code> v{" "}
+            <code className="rounded bg-white px-1 py-0.5">.env</code>. Na Verceli: Settings
+            → Environment Variables → rovnaký Neon connection string, potom Redeploy.
           </p>
         </div>
       )}

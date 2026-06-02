@@ -146,7 +146,14 @@ export default async function ProduktyPage({
 
       {dbError && (
         <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Databáza nie je dostupná. Skontroluj <code>DATABASE_URL</code> v <code>.env</code>.
+          <p className="font-semibold">Databáza nie je dostupná.</p>
+          <p className="mt-1">
+            Lokálne: <code className="rounded bg-white px-1">DATABASE_URL</code> v{" "}
+            <code className="rounded bg-white px-1">.env</code>. Na Verceli: Project →
+            Settings → Environment Variables (Production) → pridaj{" "}
+            <code className="rounded bg-white px-1">DATABASE_URL</code> z Neonu, potom{" "}
+            <strong>Redeploy</strong>.
+          </p>
         </div>
       )}
 
