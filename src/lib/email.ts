@@ -5,6 +5,7 @@
 
 import { Resend } from "resend";
 
+import { BRAND_NAME } from "@/lib/brand";
 import { formatPrice } from "@/lib/format";
 
 /** Viditeľné vo Vercel → Logs (Runtime) — bez API kľúčov. */
@@ -43,8 +44,6 @@ export function emailResultMessage(r: EmailSendResult): string | null {
   return null;
 }
 
-const BRAND_NAME = "know3d";
-
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -56,7 +55,7 @@ function escapeHtml(s: string): string {
 function brandMarkHtml(): string {
   if (BRAND_NAME.toLowerCase().endsWith("3d")) {
     const prefix = BRAND_NAME.slice(0, -2);
-    return `${escapeHtml(prefix)}<strong style="font-weight:900;">3d</strong>`;
+    return `${escapeHtml(prefix)}<strong style="font-weight:900;">3D</strong>`;
   }
   return escapeHtml(BRAND_NAME);
 }
@@ -262,7 +261,7 @@ export async function sendOrderConfirmationEmail(
   const { data, error } = await resend.emails.send({
     from,
     to: input.to,
-    subject: `Potvrdenie objednávky ${input.orderNumber}`,
+    subject: `${BRAND_NAME} – potvrdenie objednávky ${input.orderNumber}`,
     html,
   });
 
@@ -317,7 +316,7 @@ export async function sendCustomPrintReceivedEmail(
   const { data, error } = await resend.emails.send({
     from,
     to: input.to,
-    subject: `Prišla požiadavka ${input.requestNumber}`,
+    subject: `${BRAND_NAME} – prišla požiadavka ${input.requestNumber}`,
     html,
   });
 
@@ -377,7 +376,7 @@ export async function sendCustomPrintQuoteEmail(
     <div style="margin-top:8px;font-size:30px;font-weight:900;letter-spacing:-0.03em;line-height:1.1;color:${EB.brandDark};">${formatPrice(input.priceCents)}</div>
   </div>
   <p style="margin:0 0 4px;font-size:13px;color:${EB.muted};line-height:1.55;">Údaje slúžia ako cenový návrh — finálnu sumu potvrdíme po doplnení detailov alebo pri akceptácii.</p>
-  ${primaryCtaHtml(tlacUrl, "Otvoriť know3d")}
+  ${primaryCtaHtml(tlacUrl, `Otvoriť ${BRAND_NAME}`)}
   `.trimStart();
 
   const html = wrapCustomerEmail({
@@ -389,7 +388,7 @@ export async function sendCustomPrintQuoteEmail(
   const { data, error } = await resend.emails.send({
     from,
     to: input.to,
-    subject: `Cenový návrh — požiadavka ${input.requestNumber}`,
+    subject: `${BRAND_NAME} – cenový návrh ${input.requestNumber}`,
     html,
   });
 

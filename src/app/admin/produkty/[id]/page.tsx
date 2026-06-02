@@ -49,6 +49,9 @@ export default async function EditProductPage({
           isFeaturedHome: product.isFeaturedHome,
           isHitOfWeek: product.isHitOfWeek,
           homeSortOrder: product.homeSortOrder,
+          hasVariants: product.hasVariants,
+          figurkaPriceCents: product.figurkaPriceCents,
+          klucenkaPriceCents: product.klucenkaPriceCents,
         }}
       />
     </div>

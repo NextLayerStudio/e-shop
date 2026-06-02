@@ -1,5 +1,5 @@
 /**
- * Seed script for the iknow3D e-shop.
+ * Seed script for the know3D e-shop.
  * Run with: npm run db:seed
  *
  * Creates a small set of demo products (no images attached – upload your own
@@ -22,7 +22,7 @@ async function main() {
         "Detailne vytlačená pohyblivá manta. Skvelá ako dekorácia aj ako hračka.",
       priceCents: 1999,
       stock: 12,
-      category: "DEKORATIVNE" as const,
+      category: "PRIVESKY_MAGNETKY" as const,
       isFeaturedHome: true,
       isHitOfWeek: false,
     },
@@ -33,7 +33,7 @@ async function main() {
       description: "Sada zábavných farebných zajačikov. Ideálne ako darček.",
       priceCents: 2358,
       stock: 7,
-      category: "HRACKY" as const,
+      category: "INTERAKTIVNE_HRACKY" as const,
       isFeaturedHome: true,
     },
     {
@@ -44,7 +44,7 @@ async function main() {
         "Náš najobľúbenejší architektonický model. Ručne maľovaný a leštený.",
       priceCents: 4899,
       stock: 3,
-      category: "DEKORATIVNE" as const,
+      category: "PRIVESKY_MAGNETKY" as const,
       isFeaturedHome: true,
       isHitOfWeek: true,
     },
@@ -56,7 +56,7 @@ async function main() {
         "Praktický nástenný háčik – vďaka 3D tlači si môžeš vybrať farbu aj dizajn.",
       priceCents: 1233,
       stock: 50,
-      category: "PRAKTICKE" as const,
+      category: "NA_ORGANIZOVANIE" as const,
       isFeaturedHome: true,
     },
     {
@@ -67,7 +67,7 @@ async function main() {
         "Skladaj si vlastné poličky. Každý kus pasuje k susednému ako puzzle.",
       priceCents: 5899,
       stock: 8,
-      category: "PRAKTICKE" as const,
+      category: "NA_ORGANIZOVANIE" as const,
       isFeaturedHome: true,
     },
     {
@@ -78,7 +78,7 @@ async function main() {
       description: "Tri vytlačené figúrky s detailným tieňovaním.",
       priceCents: 2277,
       stock: 5,
-      category: "DEKORATIVNE" as const,
+      category: "PRIVESKY_MAGNETKY" as const,
       isFeaturedHome: true,
     },
   ];

@@ -7,7 +7,7 @@ import { HomeHeroCarousel } from "@/components/HomeHeroCarousel";
 
 export const dynamic = "force-dynamic";
 
-type SortKey = "popular" | "practical" | "price";
+type SortKey = "popular" | "organizing" | "price";
 
 async function getFeaturedProducts(sort: SortKey): Promise<ProductCardData[]> {
   const where = { isActive: true, isFeaturedHome: true } as const;
@@ -20,7 +20,7 @@ async function getFeaturedProducts(sort: SortKey): Promise<ProductCardData[]> {
 
   if (sort === "popular") orderBy = { salesCount: "desc" };
   else if (sort === "price") orderBy = { priceCents: "asc" };
-  else if (sort === "practical") extraWhere = { category: "PRAKTICKE" };
+  else if (sort === "organizing") extraWhere = { category: "NA_ORGANIZOVANIE" };
 
   try {
     const products = await prisma.product.findMany({
@@ -44,6 +44,9 @@ async function getFeaturedProducts(sort: SortKey): Promise<ProductCardData[]> {
       shortDescription: p.shortDescription,
       priceCents: p.priceCents,
       primaryImageId: p.images[0]?.id ?? null,
+      hasVariants: p.hasVariants,
+      figurkaPriceCents: p.figurkaPriceCents,
+      klucenkaPriceCents: p.klucenkaPriceCents,
     }));
   } catch (err) {
     console.error("[home] getFeaturedProducts failed:", err);
@@ -112,6 +115,9 @@ async function getBottomGrid(): Promise<ProductCardData[]> {
       shortDescription: p.shortDescription,
       priceCents: p.priceCents,
       primaryImageId: p.images[0]?.id ?? null,
+      hasVariants: p.hasVariants,
+      figurkaPriceCents: p.figurkaPriceCents,
+      klucenkaPriceCents: p.klucenkaPriceCents,
     }));
   } catch (err) {
     console.error("[home] getBottomGrid failed:", err);
@@ -136,7 +142,7 @@ export default async function HomePage({
   const params = await searchParams;
   const sort: SortKey =
     params.sort === "popular" ||
-    params.sort === "practical" ||
+    params.sort === "organizing" ||
     params.sort === "price"
       ? params.sort
       : "popular";

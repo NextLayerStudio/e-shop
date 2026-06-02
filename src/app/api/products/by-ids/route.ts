@@ -24,6 +24,9 @@ export async function GET(req: Request) {
       name: true,
       priceCents: true,
       stock: true,
+      hasVariants: true,
+      figurkaPriceCents: true,
+      klucenkaPriceCents: true,
       images: {
         orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
         take: 1,
@@ -39,6 +42,9 @@ export async function GET(req: Request) {
       name: p.name,
       priceCents: p.priceCents,
       stock: p.stock,
+      hasVariants: p.hasVariants,
+      figurkaPriceCents: p.figurkaPriceCents,
+      klucenkaPriceCents: p.klucenkaPriceCents,
       primaryImageId: p.images[0]?.id ?? null,
     })),
   });

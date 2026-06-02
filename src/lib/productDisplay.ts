@@ -1,20 +1,9 @@
 import type { ProductCategory } from "@/generated/prisma/enums";
+import { categoryLabel } from "@/lib/productCategories";
 
 /** Labels shown as badges on product detail (aligned with shop tone). */
 export function categoryBadgeLabel(category: ProductCategory): string {
-  switch (category) {
-    case "PRAKTICKE":
-      return "Praktické";
-    case "DEKORATIVNE":
-      return "Dekoratívne";
-    case "HRACKY":
-      return "Zábava";
-    case "DOPLNKY":
-      return "Doplnky";
-    case "INE":
-    default:
-      return "Iné";
-  }
+  return categoryLabel(category);
 }
 
 export function showPopularBadge(product: {

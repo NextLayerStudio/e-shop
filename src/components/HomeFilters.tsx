@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const filters = [
   { key: "popular", label: "Najpopulárnejšie" },
-  { key: "practical", label: "Praktické" },
+  { key: "organizing", label: "Na organizovanie" },
   { key: "price", label: "Podľa ceny" },
 ] as const;
 

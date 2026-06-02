@@ -15,6 +15,7 @@ import {
 import { generatePaymentQR } from "@/lib/pay-by-square";
 import { isRateLimited, getClientIp } from "@/lib/rate-limit";
 import { sendOrderConfirmationEmail, emailResultMessage } from "@/lib/email";
+import { priceForVariant, variantLabel } from "@/lib/productVariants";
 
 export const runtime = "nodejs";
 
@@ -36,6 +37,7 @@ const orderSchema = z.object({
       z.object({
         productId: z.string().min(1),
         quantity: z.number().int().min(1).max(999),
+        variant: z.enum(["FIGURKA", "KLUCENKA"]).nullable().optional(),
       })
     )
     .min(1)
@@ -84,10 +86,20 @@ export async function POST(req: Request) {
   const productIds = data.items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, isActive: true },
-    select: { id: true, name: true, priceCents: true, stock: true },
+    select: {
+      id: true,
+      name: true,
+      priceCents: true,
+      stock: true,
+      hasVariants: true,
+      figurkaPriceCents: true,
+      klucenkaPriceCents: true,
+    },
   });
 
   const productMap = new Map(products.map((p) => [p.id, p]));
+
+  // Variant musí byť zvolený pri produktoch s variantmi (a naopak ignorovaný inde).
   for (const item of data.items) {
     const p = productMap.get(item.productId);
     if (!p) {
@@ -96,7 +108,25 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    if (p.stock < item.quantity) {
+    if (p.hasVariants && !item.variant) {
+      return NextResponse.json(
+        { error: `Pri produkte "${p.name}" treba zvoliť variant (figúrka/kľúčenka).` },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Sklad sa zdieľa medzi variantmi → kontrola po sčítaní množstva za produkt.
+  const qtyByProduct = new Map<string, number>();
+  for (const item of data.items) {
+    qtyByProduct.set(
+      item.productId,
+      (qtyByProduct.get(item.productId) ?? 0) + item.quantity
+    );
+  }
+  for (const [productId, qty] of qtyByProduct) {
+    const p = productMap.get(productId)!;
+    if (p.stock < qty) {
       return NextResponse.json(
         { error: `Produkt "${p.name}" nie je skladom v požadovanom množstve.` },
         { status: 400 }
@@ -104,10 +134,21 @@ export async function POST(req: Request) {
     }
   }
 
-  const subtotalCents = data.items.reduce((sum, item) => {
+  const unitPriceFor = (item: (typeof data.items)[number]): number => {
     const p = productMap.get(item.productId)!;
-    return sum + p.priceCents * item.quantity;
-  }, 0);
+    return priceForVariant(p, p.hasVariants ? item.variant ?? null : null);
+  };
+
+  const nameFor = (item: (typeof data.items)[number]): string => {
+    const p = productMap.get(item.productId)!;
+    const label = p.hasVariants ? variantLabel(item.variant) : null;
+    return label ? `${p.name} (${label})` : p.name;
+  };
+
+  const subtotalCents = data.items.reduce(
+    (sum, item) => sum + unitPriceFor(item) * item.quantity,
+    0
+  );
 
   const codeNorm = normalizePromoCodeInput(data.promoCode ?? "");
   let discountCents = 0;
@@ -156,12 +197,12 @@ export async function POST(req: Request) {
   const totalCents = Math.max(0, subtotalCents - discountCents + shippingFee);
 
   const lines = data.items.map((item) => {
-    const p = productMap.get(item.productId)!;
+    const unit = unitPriceFor(item);
     return {
-      productName: p.name,
+      productName: nameFor(item),
       quantity: item.quantity,
-      unitPriceCents: p.priceCents,
-      lineTotalCents: p.priceCents * item.quantity,
+      unitPriceCents: unit,
+      lineTotalCents: unit * item.quantity,
     };
   });
 
@@ -222,25 +263,22 @@ export async function POST(req: Request) {
         packetaPointAddress: data.packetaPointAddress ?? null,
         packetaIsoCountry: data.packetaIsoCountry ?? null,
         items: {
-          create: data.items.map((item) => {
-            const p = productMap.get(item.productId)!;
-            return {
-              productId: item.productId,
-              productName: p.name,
-              unitPriceCents: p.priceCents,
-              quantity: item.quantity,
-            };
-          }),
+          create: data.items.map((item) => ({
+            productId: item.productId,
+            productName: nameFor(item),
+            unitPriceCents: unitPriceFor(item),
+            quantity: item.quantity,
+          })),
         },
       },
     });
 
-    for (const item of data.items) {
+    for (const [productId, qty] of qtyByProduct) {
       await tx.product.update({
-        where: { id: item.productId },
+        where: { id: productId },
         data: {
-          stock: { decrement: item.quantity },
-          salesCount: { increment: item.quantity },
+          stock: { decrement: qty },
+          salesCount: { increment: qty },
         },
       });
     }

@@ -1,4 +1,4 @@
-# iknow3D – e-shop
+# know3D – e-shop
 
 Slovenský e-shop pre 3D tlač s admin panelom, správou produktov, objednávok a požiadaviek na **Tlač na mieru**.
 
@@ -72,7 +72,7 @@ ADMIN_SESSION_SECRET="náhodný reťazec, min. 32 znakov"
 Transakčné emaily používajú **[Resend](https://resend.com)** (`resend` SDK v `src/lib/email.ts`):
 
 - **`RESEND_API_KEY`** – API kľúč z Resend dashbordu.
-- **`EMAIL_FROM`** – napr. `iknow3D <objednavky@know3d.sk>` — doména v adrese musí byť v Resend **overená** (DNS). **Nepoužívaj `@resend.dev`** na produkcii pre zákazníkov — Resend to typicky blokne alebo doručí len na vlastný tímový email.
+- **`EMAIL_FROM`** – napr. `know3D <objednavky@know3d.sk>` — doména v adrese musí byť v Resend **overená** (DNS). **Nepoužívaj `@resend.dev`** na produkcii pre zákazníkov — Resend to typicky blokne alebo doručí len na vlastný tímový email.
 - **`NEXT_PUBLIC_SITE_URL`** *(odporúčané na Verceli)* – napr. `https://know3d.sk`. Ak chýba, použije sa automaticky host z `VERCEL_URL`, ale vlastná doména je spoľahlivejšia pre odkazy v mailoch.
 
 Bez `RESEND_API_KEY` alebo bez `EMAIL_FROM` sa údaje (objednávka / požiadavka) uložia, ale mail sa neodosiela — **vo Vercel → tvoj projekt → Logs** uvidíš riadok `[email]` s tým, či premenné „CHÝBA“.

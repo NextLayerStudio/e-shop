@@ -3,10 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminGuard";
 import { slugify } from "@/lib/format";
 import { fileToBytes } from "@/lib/bytes";
+import {
+  DEFAULT_PRODUCT_CATEGORY,
+  isValidProductCategory,
+  type ProductCategoryValue,
+} from "@/lib/productCategories";
+import { parseVariantFields } from "@/lib/productVariants";
 
 export const runtime = "nodejs";
-
-const VALID_CATEGORIES = ["PRAKTICKE", "DEKORATIVNE", "HRACKY", "DOPLNKY", "INE"];
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB per image
 
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|avif|bmp|heic|heif)$/i;
@@ -55,14 +59,18 @@ export async function POST(req: Request) {
   const shortDescription = String(form.get("shortDescription") ?? "").trim();
   const priceCents = Number(form.get("priceCents") ?? 0);
   const stock = Number(form.get("stock") ?? 0);
-  const category = String(form.get("category") ?? "INE");
+  const category = String(form.get("category") ?? DEFAULT_PRODUCT_CATEGORY);
   const isActive = form.get("isActive") === "true";
   const isFeaturedHome = form.get("isFeaturedHome") === "true";
   const isHitOfWeek = form.get("isHitOfWeek") === "true";
   const homeSortOrder = Number(form.get("homeSortOrder") ?? 0);
+  const variants = parseVariantFields(form);
 
   if (name.length < 2) {
     return NextResponse.json({ error: "Názov je príliš krátky." }, { status: 400 });
+  }
+  if ("error" in variants) {
+    return NextResponse.json({ error: variants.error }, { status: 400 });
   }
   if (!Number.isFinite(priceCents) || priceCents < 0) {
     return NextResponse.json({ error: "Neplatná cena." }, { status: 400 });
@@ -74,7 +82,7 @@ export async function POST(req: Request) {
     );
   }
   const stockRounded = Math.round(stock);
-  if (!VALID_CATEGORIES.includes(category)) {
+  if (!isValidProductCategory(category)) {
     return NextResponse.json({ error: "Neplatná kategória." }, { status: 400 });
   }
 
@@ -121,15 +129,13 @@ export async function POST(req: Request) {
         shortDescription: shortDescription || null,
         priceCents: Math.round(priceCents),
         stock: stockRounded,
-        category: category as
-          | "PRAKTICKE"
-          | "DEKORATIVNE"
-          | "HRACKY"
-          | "DOPLNKY"
-          | "INE",
+        category: category as ProductCategoryValue,
         isActive,
         isFeaturedHome,
         isHitOfWeek,
+        hasVariants: variants.hasVariants,
+        figurkaPriceCents: variants.figurkaPriceCents,
+        klucenkaPriceCents: variants.klucenkaPriceCents,
         homeSortOrder: Math.round(
           Number.isFinite(homeSortOrder) ? homeSortOrder : 0
         ),

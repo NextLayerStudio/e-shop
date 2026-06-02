@@ -1,7 +1,8 @@
+import { BRAND_NAME } from "@/lib/brand";
+
 export const metadata = {
   title: "Ochrana osobných údajov (GDPR)",
-  description:
-    "Informácie o spracúvaní osobných údajov a cookies na e-shope iknow3D.",
+  description: `Informácie o spracúvaní osobných údajov a cookies na e-shope ${BRAND_NAME}.`,
 };
 
 const sections = [

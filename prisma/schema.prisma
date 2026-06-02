@@ -1,4 +1,4 @@
-// Prisma schema for the iknow3D e-shop
+// Prisma schema for the know3D e-shop
 // Database: Neon (PostgreSQL)
 // Docs: https://pris.ly/d/prisma-schema
 
@@ -16,11 +16,12 @@ datasource db {
 // =====================================================================
 
 enum ProductCategory {
-  PRAKTICKE
-  DEKORATIVNE
-  HRACKY
-  DOPLNKY
-  INE
+  PRIVESKY_MAGNETKY
+  SPOLOCENSKE_HRY
+  SKLADACKY_HLAVOLAMY
+  INTERAKTIVNE_HRACKY
+  NA_ORGANIZOVANIE
+  OSTATNE
 }
 
 model Product {
@@ -29,9 +30,14 @@ model Product {
   name            String
   description     String          @db.Text
   shortDescription String?        @db.Text
-  priceCents      Int             // price in cents (e.g. 1999 = 19,99 €)
+  priceCents      Int             // price in cents (e.g. 1999 = 19,99 €); pri variantoch = „od" cena (min)
   stock           Int             @default(0)
-  category        ProductCategory @default(INE)
+  category        ProductCategory @default(OSTATNE)
+
+  // Varianty (figúrka / kľúčenka) — voliteľné, s vlastnou cenou
+  hasVariants        Boolean @default(false)
+  figurkaPriceCents  Int?
+  klucenkaPriceCents Int?
 
   // Visibility / curation
   isActive        Boolean         @default(true)

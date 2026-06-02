@@ -1,6 +1,6 @@
 # Implementácia — Pay by Square, 2-krokový checkout & Packeta integrácia
 
-Tento dokument popisuje všetky zmeny a nové funkcie, ktoré boli pridané do projektu **iknow3D e-shop**. Slúži ako technická referencia pre ďalší rozvoj.
+Tento dokument popisuje všetky zmeny a nové funkcie, ktoré boli pridané do projektu **know3D e-shop**. Slúži ako technická referencia pre ďalší rozvoj.
 
 ---
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BRAND_NAME } from "@/lib/brand";
 import { Geist } from "next/font/google";
 import "./globals.css";
 
@@ -9,11 +10,10 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: {
-    default: "iknow3D – 3D výtlačky na mieru",
-    template: "%s | iknow3D",
+    default: `${BRAND_NAME} – 3D výtlačky na mieru`,
+    template: `%s | ${BRAND_NAME}`,
   },
-  description:
-    "iknow3D – kvalitné 3D výtlačky, doplnky a tlač na mieru. Objednávajte priamo z e-shopu.",
+  description: `${BRAND_NAME} – kvalitné 3D výtlačky, doplnky a tlač na mieru. Objednávajte priamo z e-shopu.`,
   icons: {
     icon: [{ url: "/LOGO.webp", type: "image/webp" }],
   },

@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { categoryBadgeLabel, showPopularBadge } from "@/lib/productDisplay";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { ProductVariantBuy } from "@/components/ProductVariantBuy";
 import { ProductDescriptionExpand } from "@/components/ProductDescriptionExpand";
 import type { ProductCategory } from "@/generated/prisma/enums";
 
@@ -19,6 +20,9 @@ const cardSelect = {
   shortDescription: true,
   description: true,
   priceCents: true,
+  hasVariants: true,
+  figurkaPriceCents: true,
+  klucenkaPriceCents: true,
   images: {
     orderBy: [{ isPrimary: "desc" as const }, { sortOrder: "asc" as const }],
     take: 1,
@@ -33,6 +37,9 @@ function mapToCardData(p: {
   shortDescription: string | null;
   description: string;
   priceCents: number;
+  hasVariants: boolean;
+  figurkaPriceCents: number | null;
+  klucenkaPriceCents: number | null;
   images: { id: string }[];
 }): ProductCardData {
   return {
@@ -43,6 +50,9 @@ function mapToCardData(p: {
     description: p.description,
     priceCents: p.priceCents,
     primaryImageId: p.images[0]?.id ?? null,
+    hasVariants: p.hasVariants,
+    figurkaPriceCents: p.figurkaPriceCents,
+    klucenkaPriceCents: p.klucenkaPriceCents,
   };
 }
 
@@ -122,7 +132,7 @@ export default async function ProductDetailPage({
         <div className="flex flex-col gap-5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/12 px-3 py-1 text-xs font-semibold text-brand-dark ring-1 ring-brand/25">
-              <span aria-hidden>{product.category === "HRACKY" ? "🪄" : "✨"}</span>
+              <span aria-hidden>✨</span>
               {categoryBadgeLabel(product.category)}
             </span>
             {showPopularBadge(product) && (
@@ -155,18 +165,27 @@ export default async function ProductDetailPage({
             </span>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-            <div className="flex items-center justify-center rounded-2xl bg-brand px-6 py-3 text-center shadow-inner ring-2 ring-brand/20 sm:min-w-[140px] sm:justify-center">
-              <span className="text-2xl font-bold text-white tabular-nums">
-                {formatPrice(product.priceCents)}
-              </span>
-            </div>
-            <AddToCartButton
+          {product.hasVariants ? (
+            <ProductVariantBuy
               productId={product.id}
+              figurkaPriceCents={product.figurkaPriceCents}
+              klucenkaPriceCents={product.klucenkaPriceCents}
               disabled={product.stock <= 0}
-              className="sm:flex-1"
             />
-          </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+              <div className="flex items-center justify-center rounded-2xl bg-brand px-6 py-3 text-center shadow-inner ring-2 ring-brand/20 sm:min-w-[140px] sm:justify-center">
+                <span className="text-2xl font-bold text-white tabular-nums">
+                  {formatPrice(product.priceCents)}
+                </span>
+              </div>
+              <AddToCartButton
+                productId={product.id}
+                disabled={product.stock <= 0}
+                className="sm:flex-1"
+              />
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
+import { categoryLabel } from "@/lib/productCategories";
 import { ProductImage } from "@/components/ProductImage";
 import { FeaturedToggle } from "@/components/admin/FeaturedToggle";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
@@ -92,7 +93,9 @@ export default async function AdminProductsPage() {
                       {p.stock} ks
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-neutral-600">{p.category}</td>
+                  <td className="px-4 py-3 text-neutral-600">
+                    {categoryLabel(p.category)}
+                  </td>
                   <td className="px-4 py-3">
                     <FeaturedToggle
                       productId={p.id}

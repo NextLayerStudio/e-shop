@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { CookieReopenButton } from "@/components/CookieReopenButton";
+import { BRAND_NAME } from "@/lib/brand";
+import { CONSENT_STORAGE_KEY } from "@/lib/cookie-consent";
 
 export const metadata = {
   title: "Zásady používania cookies",
-  description:
-    "Aké cookies používa e-shop iknow3D, na čo slúžia a ako si môžete súhlas kedykoľvek zmeniť.",
+  description: `Aké cookies používa e-shop ${BRAND_NAME}, na čo slúžia a ako si môžete súhlas kedykoľvek zmeniť.`,
 };
 
 type CookieRow = {
@@ -15,7 +16,7 @@ type CookieRow = {
 
 const necessaryCookies: CookieRow[] = [
   {
-    name: "iknow3d.cookie-consent",
+    name: CONSENT_STORAGE_KEY,
     purpose: "Uchováva vašu voľbu nastavení cookies, aby sme sa vás nepýtali pri každej návšteve.",
     duration: "12 mesiacov (localStorage)",
   },

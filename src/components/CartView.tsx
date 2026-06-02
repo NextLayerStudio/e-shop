@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  cartLineKey,
   clearPromoCode,
   getCart,
   getPromoCode,
@@ -13,6 +14,7 @@ import {
   type CartItem,
 } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { priceForVariant, variantLabel } from "@/lib/productVariants";
 import { ProductImage } from "./ProductImage";
 
 type CartProduct = {
@@ -21,6 +23,9 @@ type CartProduct = {
   name: string;
   priceCents: number;
   stock: number;
+  hasVariants: boolean;
+  figurkaPriceCents: number | null;
+  klucenkaPriceCents: number | null;
   primaryImageId: string | null;
 };
 
@@ -84,7 +89,8 @@ export function CartView() {
   const subtotal = useMemo(
     () =>
       itemsWithProduct.reduce(
-        (sum, it) => sum + it.product.priceCents * it.quantity,
+        (sum, it) =>
+          sum + priceForVariant(it.product, it.variant ?? null) * it.quantity,
         0
       ),
     [itemsWithProduct]
@@ -207,65 +213,75 @@ export function CartView() {
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-3">
       <ul className="space-y-3 lg:col-span-2">
-        {itemsWithProduct.map((it) => (
-          <li
-            key={it.productId}
-            className="flex items-center gap-4 rounded-2xl bg-white p-3 ring-1 ring-neutral-200"
-          >
-            <Link
-              href={`/produkty/${it.product.slug}`}
-              className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100"
+        {itemsWithProduct.map((it) => {
+          const variant = it.variant ?? null;
+          const label = it.product.hasVariants ? variantLabel(variant) : null;
+          const unitPrice = priceForVariant(it.product, variant);
+          return (
+            <li
+              key={cartLineKey(it)}
+              className="flex items-center gap-4 rounded-2xl bg-white p-3 ring-1 ring-neutral-200"
             >
-              <ProductImage
-                imageId={it.product.primaryImageId}
-                alt={it.product.name}
-              />
-            </Link>
-            <div className="min-w-0 flex-1">
               <Link
                 href={`/produkty/${it.product.slug}`}
-                className="block truncate font-semibold text-neutral-900 hover:text-brand"
+                className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100"
               >
-                {it.product.name}
+                <ProductImage
+                  imageId={it.product.primaryImageId}
+                  alt={it.product.name}
+                />
               </Link>
-              <p className="text-sm text-neutral-500">
-                {formatPrice(it.product.priceCents)} / ks
+              <div className="min-w-0 flex-1">
+                <Link
+                  href={`/produkty/${it.product.slug}`}
+                  className="block truncate font-semibold text-neutral-900 hover:text-brand"
+                >
+                  {it.product.name}
+                </Link>
+                {label && (
+                  <span className="mt-0.5 inline-block rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand-dark">
+                    {label}
+                  </span>
+                )}
+                <p className="text-sm text-neutral-500">
+                  {formatPrice(unitPrice)} / ks
+                </p>
+              </div>
+              <div className="inline-flex items-center rounded-full bg-white ring-1 ring-neutral-200">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(it.productId, it.quantity - 1, variant)}
+                  className="h-8 w-8 text-neutral-600"
+                  aria-label="Znížiť"
+                >
+                  −
+                </button>
+                <span className="w-8 text-center text-sm font-semibold">
+                  {it.quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(it.productId, it.quantity + 1, variant)}
+                  className="h-8 w-8 text-neutral-600"
+                  aria-label="Zvýšiť"
+                >
+                  +
+                </button>
+              </div>
+              <p className="w-24 text-right font-bold text-neutral-900">
+                {formatPrice(unitPrice * it.quantity)}
               </p>
-            </div>
-            <div className="inline-flex items-center rounded-full bg-white ring-1 ring-neutral-200">
               <button
                 type="button"
-                onClick={() => setQuantity(it.productId, it.quantity - 1)}
-                className="h-8 w-8 text-neutral-600"
-                aria-label="Znížiť"
+                onClick={() => removeFromCart(it.productId, variant)}
+                className="text-neutral-400 hover:text-red-500"
+                aria-label="Odstrániť"
               >
-                −
+                ×
               </button>
-              <span className="w-8 text-center text-sm font-semibold">
-                {it.quantity}
-              </span>
-              <button
-                type="button"
-                onClick={() => setQuantity(it.productId, it.quantity + 1)}
-                className="h-8 w-8 text-neutral-600"
-                aria-label="Zvýšiť"
-              >
-                +
-              </button>
-            </div>
-            <p className="w-24 text-right font-bold text-neutral-900">
-              {formatPrice(it.product.priceCents * it.quantity)}
-            </p>
-            <button
-              type="button"
-              onClick={() => removeFromCart(it.productId)}
-              className="text-neutral-400 hover:text-red-500"
-              aria-label="Odstrániť"
-            >
-              ×
-            </button>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
       <aside className="h-fit rounded-2xl bg-white p-5 ring-1 ring-neutral-200">

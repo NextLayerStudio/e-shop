@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminGuard";
 import { slugify } from "@/lib/format";
+import {
+  DEFAULT_PRODUCT_CATEGORY,
+  isValidProductCategory,
+} from "@/lib/productCategories";
+import { parseVariantFields } from "@/lib/productVariants";
 
 export const runtime = "nodejs";
-
-const VALID_CATEGORIES = ["PRAKTICKE", "DEKORATIVNE", "HRACKY", "DOPLNKY", "INE"];
 
 export async function PATCH(
   req: Request,
@@ -49,13 +52,18 @@ export async function PATCH(
     const shortDescription = String(form.get("shortDescription") ?? "").trim();
     const priceCents = Number(form.get("priceCents") ?? 0);
     const stock = Number(form.get("stock") ?? 0);
-    const category = String(form.get("category") ?? "INE");
+    const category = String(form.get("category") ?? DEFAULT_PRODUCT_CATEGORY);
 
     if (name.length < 2) {
       return NextResponse.json({ error: "Názov je príliš krátky." }, { status: 400 });
     }
-    if (!VALID_CATEGORIES.includes(category)) {
+    if (!isValidProductCategory(category)) {
       return NextResponse.json({ error: "Neplatná kategória." }, { status: 400 });
+    }
+
+    const variants = parseVariantFields(form);
+    if ("error" in variants) {
+      return NextResponse.json({ error: variants.error }, { status: 400 });
     }
 
     let newSlug = slugInput ? slugify(slugInput) : slugify(name);
@@ -89,6 +97,9 @@ export async function PATCH(
       isActive: form.get("isActive") === "true",
       isFeaturedHome: form.get("isFeaturedHome") === "true",
       isHitOfWeek: form.get("isHitOfWeek") === "true",
+      hasVariants: variants.hasVariants,
+      figurkaPriceCents: variants.figurkaPriceCents,
+      klucenkaPriceCents: variants.klucenkaPriceCents,
       homeSortOrder: Math.round(Number(form.get("homeSortOrder") ?? 0)),
     });
   }

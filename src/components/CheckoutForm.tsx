@@ -14,6 +14,8 @@ import { formatPrice } from "@/lib/format";
 import { getShippingMethodById } from "@/lib/shippingMethods";
 import { getShippingMethodId } from "@/lib/shippingSelection";
 import { getPacketaPoint } from "@/lib/packeta-selection";
+import { priceForVariant, variantLabel } from "@/lib/productVariants";
+import { cartLineKey } from "@/lib/cart";
 
 // ---------------------------------------------------------------------------
 // Typy
@@ -45,6 +47,9 @@ type CartProduct = {
   id: string;
   name: string;
   priceCents: number;
+  hasVariants: boolean;
+  figurkaPriceCents: number | null;
+  klucenkaPriceCents: number | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -99,7 +104,9 @@ export function CheckoutForm() {
     return () => window.removeEventListener("iknow3d:cart-changed", syncCart);
   }, []);
 
-  const cartKey = items.map((i) => `${i.productId}:${i.quantity}`).join(",");
+  const cartKey = items
+    .map((i) => `${cartLineKey(i)}:${i.quantity}`)
+    .join(",");
 
   useEffect(() => {
     const ids = items.map((i) => i.productId);
@@ -163,7 +170,12 @@ export function CheckoutForm() {
     .filter((x): x is CartItem & { product: CartProduct } => x !== null);
 
   const subtotal = useMemo(
-    () => lineItems.reduce((s, it) => s + it.product.priceCents * it.quantity, 0),
+    () =>
+      lineItems.reduce(
+        (s, it) =>
+          s + priceForVariant(it.product, it.variant ?? null) * it.quantity,
+        0
+      ),
     [lineItems]
   );
 
@@ -253,7 +265,11 @@ export function CheckoutForm() {
           note: values.note,
           promoCode: getPromoCode() ?? "",
           shippingMethodId: shipId,
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          items: items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            variant: i.variant ?? null,
+          })),
           // Packeta polia — voliteľné
           packetaPointId: packetaPoint?.pointId ?? null,
           packetaPointName: packetaPoint?.pointName ?? null,
@@ -655,7 +671,7 @@ function OrderSummary({
   shippingCents,
   total,
 }: {
-  lineItems: Array<CartItem & { product: { name: string; priceCents: number } }>;
+  lineItems: Array<CartItem & { product: CartProduct }>;
   subtotal: number;
   promoDiscount: number;
   appliedCode: string | null;
@@ -666,20 +682,29 @@ function OrderSummary({
   return (
     <>
       <ul className="mt-4 divide-y divide-neutral-100">
-        {lineItems.map((it) => (
-          <li
-            key={it.productId}
-            className="flex items-center justify-between gap-2 py-2 text-sm"
-          >
-            <span className="truncate">
-              {it.product.name}{" "}
-              <span className="text-neutral-400">× {it.quantity}</span>
-            </span>
-            <span className="font-semibold">
-              {formatPrice(it.product.priceCents * it.quantity)}
-            </span>
-          </li>
-        ))}
+        {lineItems.map((it) => {
+          const label = it.product.hasVariants
+            ? variantLabel(it.variant)
+            : null;
+          const unit = priceForVariant(it.product, it.variant ?? null);
+          return (
+            <li
+              key={cartLineKey(it)}
+              className="flex items-center justify-between gap-2 py-2 text-sm"
+            >
+              <span className="truncate">
+                {it.product.name}
+                {label ? (
+                  <span className="text-neutral-500"> · {label}</span>
+                ) : null}{" "}
+                <span className="text-neutral-400">× {it.quantity}</span>
+              </span>
+              <span className="font-semibold">
+                {formatPrice(unit * it.quantity)}
+              </span>
+            </li>
+          );
+        })}
       </ul>
       <div className="mt-4 space-y-1 border-t border-neutral-200 pt-4 text-sm">
         <div className="flex items-center justify-between">

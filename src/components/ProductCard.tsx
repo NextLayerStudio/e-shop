@@ -11,6 +11,9 @@ export type ProductCardData = {
   description: string;
   priceCents: number;
   primaryImageId: string | null;
+  hasVariants?: boolean;
+  figurkaPriceCents?: number | null;
+  klucenkaPriceCents?: number | null;
 };
 
 export function ProductCard({
@@ -47,10 +50,17 @@ export function ProductCard({
 
         <div className="mt-auto flex flex-col gap-3 pt-2">
           <span className="text-lg font-bold text-neutral-900">
+            {product.hasVariants && <span className="text-sm font-medium text-neutral-500">od </span>}
             {formatPrice(product.priceCents)}
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <ProductCardAddToCartButton productId={product.id} />
+            <ProductCardAddToCartButton
+              productId={product.id}
+              productName={product.name}
+              hasVariants={product.hasVariants ?? false}
+              figurkaPriceCents={product.figurkaPriceCents ?? null}
+              klucenkaPriceCents={product.klucenkaPriceCents ?? null}
+            />
             <Link
               href={`/produkty/${product.slug}`}
               className="rounded-full bg-brand px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-dark"

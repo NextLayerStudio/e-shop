@@ -1,17 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ProductCard, type ProductCardData } from "@/components/ProductCard";
+import {
+  isValidProductCategory,
+  PRODUCT_CATEGORY_FILTER_OPTIONS,
+} from "@/lib/productCategories";
 
 export const dynamic = "force-dynamic";
-
-const CATEGORY_OPTIONS = [
-  { value: "", label: "Všetky" },
-  { value: "PRAKTICKE", label: "Praktické" },
-  { value: "DEKORATIVNE", label: "Dekoratívne" },
-  { value: "HRACKY", label: "Hračky" },
-  { value: "DOPLNKY", label: "Doplnky" },
-  { value: "INE", label: "Iné" },
-] as const;
 
 type Sort = "new" | "price-asc" | "price-desc" | "popular";
 const SORT_OPTIONS: { value: Sort; label: string }[] = [
@@ -43,10 +38,7 @@ export default async function ProduktyPage({
       { description: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (
-    category &&
-    ["PRAKTICKE", "DEKORATIVNE", "HRACKY", "DOPLNKY", "INE"].includes(category)
-  ) {
+  if (category && isValidProductCategory(category)) {
     where.category = category;
   }
 
@@ -81,6 +73,9 @@ export default async function ProduktyPage({
       shortDescription: p.shortDescription,
       priceCents: p.priceCents,
       primaryImageId: p.images[0]?.id ?? null,
+      hasVariants: p.hasVariants,
+      figurkaPriceCents: p.figurkaPriceCents,
+      klucenkaPriceCents: p.klucenkaPriceCents,
     }));
   } catch (err) {
     console.error("[produkty] findMany failed:", err);
@@ -110,7 +105,7 @@ export default async function ProduktyPage({
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <span className="text-sm font-semibold text-neutral-700">Kategória:</span>
         <div className="flex flex-wrap gap-2">
-          {CATEGORY_OPTIONS.map((c) => {
+          {PRODUCT_CATEGORY_FILTER_OPTIONS.map((c) => {
             const active = (c.value || "") === category;
             return (
               <Link

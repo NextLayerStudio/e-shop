@@ -39,7 +39,7 @@ export async function generatePaymentQR(
   const recipient =
     input.recipient.trim() ||
     process.env.PAYMENT_RECIPIENT_NAME?.trim() ||
-    "know3d";
+    "know3D";
 
   const due = formatDueDate(input.dueDate);
   const fallbackDue = new Date();

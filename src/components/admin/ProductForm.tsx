@@ -1,16 +1,12 @@
 "use client";
 
 import { compressImagesForUpload, UPLOAD_MAX_EDGE_PX } from "@/lib/compressImagesForUpload";
+import {
+  DEFAULT_PRODUCT_CATEGORY,
+  PRODUCT_CATEGORIES,
+} from "@/lib/productCategories";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-
-const CATEGORIES = [
-  { value: "PRAKTICKE", label: "Praktické" },
-  { value: "DEKORATIVNE", label: "Dekoratívne" },
-  { value: "HRACKY", label: "Hračky" },
-  { value: "DOPLNKY", label: "Doplnky" },
-  { value: "INE", label: "Iné" },
-] as const;
 
 /** Homepage grid order presets (stored as `homeSortOrder`; nižší = vyšší v zozname pri zoradení podľa vlastného poradia). */
 const HOME_ORDER_SLOTS = [
@@ -49,6 +45,9 @@ type ProductInput = {
   isFeaturedHome: boolean;
   isHitOfWeek: boolean;
   homeSortOrder: number;
+  hasVariants: boolean;
+  figurkaPriceCents: number | null;
+  klucenkaPriceCents: number | null;
 };
 
 type Props =
@@ -69,6 +68,7 @@ export function ProductForm(props: Props) {
   const [featuredHome, setFeaturedHome] = useState(
     initial?.isFeaturedHome ?? false
   );
+  const [hasVariants, setHasVariants] = useState(initial?.hasVariants ?? false);
   const [homeSortSlot, setHomeSortSlot] = useState(nearestHomeOrderPreset(initial?.homeSortOrder));
 
   const homeHintId = useId();
@@ -119,10 +119,31 @@ export function ProductForm(props: Props) {
     setUploadPhase("product");
 
     const formData = new FormData(formEl);
-    // priceEuros -> priceCents
-    const priceEuros = Number(formData.get("priceEuros") ?? 0);
+
+    // Varianty (figúrka / kľúčenka) alebo jedna cena
+    formData.set("hasVariants", hasVariants ? "true" : "false");
+    if (hasVariants) {
+      const figEuros = Number(formData.get("figurkaEuros") ?? 0);
+      const klucEuros = Number(formData.get("klucenkaEuros") ?? 0);
+      formData.delete("figurkaEuros");
+      formData.delete("klucenkaEuros");
+      if (!(figEuros > 0) || !(klucEuros > 0)) {
+        setError("Pri variantoch zadaj cenu pre figúrku aj kľúčenku.");
+        setSubmitting(false);
+        setUploadPhase(null);
+        return;
+      }
+      const figCents = Math.round(figEuros * 100);
+      const klucCents = Math.round(klucEuros * 100);
+      formData.set("figurkaPriceCents", String(figCents));
+      formData.set("klucenkaPriceCents", String(klucCents));
+      // základná („od") cena = minimum z variantov
+      formData.set("priceCents", String(Math.min(figCents, klucCents)));
+    } else {
+      const priceEuros = Number(formData.get("priceEuros") ?? 0);
+      formData.set("priceCents", String(Math.round(priceEuros * 100)));
+    }
     formData.delete("priceEuros");
-    formData.set("priceCents", String(Math.round(priceEuros * 100)));
 
     // Pri vytváraní posielame obrázky samostatnými requestami (celkový objem viacerých MB v jednom POST by na Verceli zlyhal).
     while (formData.has("images")) {
@@ -275,17 +296,66 @@ export function ProductForm(props: Props) {
 
       <div className="space-y-4">
         <Card title="Cena & sklad">
-          <Field
-            name="priceEuros"
-            label="Cena (€)"
-            type="number"
-            step="0.01"
-            min="0"
-            required
-            defaultValue={
-              initial ? (initial.priceCents / 100).toFixed(2) : undefined
-            }
-          />
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 text-sm">
+            <input
+              type="checkbox"
+              checked={hasVariants}
+              onChange={(e) => setHasVariants(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-[var(--brand)]"
+            />
+            <span>
+              <span className="block font-medium text-neutral-800">
+                Ponúkať varianty (figúrka / kľúčenka)
+              </span>
+              <span className="block text-xs text-neutral-500">
+                Zákazník si pri tomto produkte zvolí prevedenie a každé môže mať
+                inú cenu.
+              </span>
+            </span>
+          </label>
+
+          {hasVariants ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                name="figurkaEuros"
+                label="Cena figúrky (€)"
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                defaultValue={
+                  initial?.figurkaPriceCents != null
+                    ? (initial.figurkaPriceCents / 100).toFixed(2)
+                    : undefined
+                }
+              />
+              <Field
+                name="klucenkaEuros"
+                label="Cena kľúčenky (€)"
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                defaultValue={
+                  initial?.klucenkaPriceCents != null
+                    ? (initial.klucenkaPriceCents / 100).toFixed(2)
+                    : undefined
+                }
+              />
+            </div>
+          ) : (
+            <Field
+              name="priceEuros"
+              label="Cena (€)"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              defaultValue={
+                initial ? (initial.priceCents / 100).toFixed(2) : undefined
+              }
+            />
+          )}
           <Field
             name="stock"
             label="Sklad (ks)"
@@ -300,10 +370,10 @@ export function ProductForm(props: Props) {
         <Card title="Kategória">
           <select
             name="category"
-            defaultValue={initial?.category ?? "INE"}
+            defaultValue={initial?.category ?? DEFAULT_PRODUCT_CATEGORY}
             className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
           >
-            {CATEGORIES.map((c) => (
+            {PRODUCT_CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
               </option>
