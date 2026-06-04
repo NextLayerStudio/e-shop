@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LEGAL_ENTITY_NAME } from "@/lib/brand";
+import { COMPANY_CONTACT } from "@/lib/companyContact";
 import { Logo } from "./Logo";
 
 const quickLinks = [
@@ -19,18 +20,15 @@ const infoLinks = [
 ];
 
 const contactItems = [
-  { icon: "user", text: "Karolína Nováková" },
-  {
-    icon: "location",
-    text: "Haburská 84/9, 821 01 Bratislava – mestská časť Ružinov",
-  },
+  { icon: "user", text: COMPANY_CONTACT.responsiblePerson },
+  { icon: "location", text: COMPANY_CONTACT.address },
   {
     icon: "mail",
-    text: "know3d.know3d@gmail.com",
-    href: "mailto:know3d.know3d@gmail.com",
+    text: COMPANY_CONTACT.email,
+    href: `mailto:${COMPANY_CONTACT.email}`,
   },
-  { icon: "id", text: "IČO: 57514097" },
-  { icon: "id", text: "DIČ: 2122789163" },
+  { icon: "id", text: `IČO: ${COMPANY_CONTACT.ico}` },
+  { icon: "id", text: `DIČ: ${COMPANY_CONTACT.dic}` },
 ] as const;
 
 export function Footer() {
@@ -81,9 +79,9 @@ function FooterContact() {
       </ul>
 
       <div className="mt-6 space-y-1 text-xs leading-relaxed text-neutral-500">
-        <p>Zapísaný v Obchodnom registri Mestského súdu Bratislava III</p>
-        <p>oddiel: Sro</p>
-        <p>vložka č. 197405/B</p>
+        {COMPANY_CONTACT.registryLines.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
       </div>
     </div>
   );

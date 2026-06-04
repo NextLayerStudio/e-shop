@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { BRAND_NAME } from "@/lib/brand";
+import { COMPANY_CONTACT } from "@/lib/companyContact";
 
 export const metadata = {
   title: "Ochrana osobných údajov (GDPR)",
@@ -10,9 +12,43 @@ const sections = [
     n: 1,
     title: "Prevádzkovateľ osobných údajov",
     content: (
-      <p className="text-sm italic text-neutral-400">
-        Údaje o prevádzkovateľovi budú doplnené.
-      </p>
+      <div className="space-y-4 text-neutral-700">
+        <p>
+          <strong className="text-neutral-900">{COMPANY_CONTACT.legalName}</strong>
+        </p>
+        <ul className="space-y-2">
+          <li>
+            <span className="text-neutral-500">Kontaktná osoba: </span>
+            {COMPANY_CONTACT.responsiblePerson}
+          </li>
+          <li>
+            <span className="text-neutral-500">Sídlo: </span>
+            {COMPANY_CONTACT.address}
+          </li>
+          <li>
+            <span className="text-neutral-500">E-mail: </span>
+            <Link
+              href={`mailto:${COMPANY_CONTACT.email}`}
+              className="font-medium text-brand hover:text-brand-dark"
+            >
+              {COMPANY_CONTACT.email}
+            </Link>
+          </li>
+          <li>
+            <span className="text-neutral-500">IČO: </span>
+            {COMPANY_CONTACT.ico}
+          </li>
+          <li>
+            <span className="text-neutral-500">DIČ: </span>
+            {COMPANY_CONTACT.dic}
+          </li>
+        </ul>
+        <div className="space-y-1 text-sm text-neutral-600">
+          {COMPANY_CONTACT.registryLines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+      </div>
     ),
   },
   {
