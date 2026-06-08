@@ -77,14 +77,31 @@ function extractTag(xml: string, tag: string): string | null {
   return m[0].replace(`<${tag}>`, "").replace(`</${tag}>`, "").trim();
 }
 
+function stripXmlTags(s: string): string {
+  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function extractPacketaFault(xml: string): string | null {
-  return (
-    extractTag(xml, "faultString") ||
-    extractTag(xml, "detail") ||
-    extractTag(xml, "fault") ||
-    extractTag(xml, "message") ||
-    null
-  );
+  const faultString = extractTag(xml, "faultString");
+  if (faultString && !faultString.includes("<")) return stripXmlTags(faultString);
+
+  const message = extractTag(xml, "message");
+  if (message && !message.includes("<")) return stripXmlTags(message);
+
+  // Packeta sometimes nests <fault> inside <fault> — take the innermost leaf message.
+  const faultMatches = [...xml.matchAll(/<fault>([\s\S]*?)<\/fault>/g)];
+  for (let i = faultMatches.length - 1; i >= 0; i--) {
+    const inner = faultMatches[i][1].trim();
+    if (!inner.includes("<fault>")) {
+      const text = stripXmlTags(inner);
+      if (text) return text;
+    }
+  }
+
+  const detail = extractTag(xml, "detail");
+  if (detail) return stripXmlTags(detail);
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------

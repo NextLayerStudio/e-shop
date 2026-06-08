@@ -7,7 +7,7 @@ export const SHIPPING_METHODS = [
     id: "packeta-pickup",
     label: "Packeta – výdajné miesto (Z-Box / pobočka)",
     feeCents: 390,
-    description: "Vyber si Z-Box alebo pobočku Packeta vo svojom okolí.",
+    description: "Vyber si Z-Box alebo pobočku Packeta na Slovensku alebo v Česku.",
   },
   {
     id: "packeta-home",

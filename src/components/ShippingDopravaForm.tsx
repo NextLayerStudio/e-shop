@@ -192,7 +192,7 @@ export function ShippingDopravaForm() {
     window.Packeta.Widget.pick(
       PACKETA_API_KEY,
       (point) => onPointRef.current(point),
-      { country: "sk", language: "sk" }
+      { country: "sk,cz", language: "sk" }
     );
   }
 
