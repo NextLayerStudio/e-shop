@@ -403,3 +403,136 @@ export async function sendCustomPrintQuoteEmail(
   }
   return { ok: true, id: data?.id };
 }
+
+export type InvoiceEmailInput = {
+  to: string;
+  customerName: string;
+  orderNumber: string;
+  invoiceNumber: string;
+  shippingLabel: string;
+  lines: {
+    productName: string;
+    quantity: number;
+    unitPriceCents: number;
+    lineTotalCents: number;
+  }[];
+  subtotalCents: number;
+  discountCents: number;
+  shippingCents: number;
+  totalCents: number;
+  pdfBase64: string;
+  pdfFilename: string;
+  recipientKind: "customer" | "admin" | "accountant";
+};
+
+/** Faktúra s PDF prílohou — zákazníkovi, adminovi alebo účtovníčke. */
+export async function sendInvoiceEmail(
+  input: InvoiceEmailInput
+): Promise<EmailSendResult> {
+  const resend = getResend();
+  const from = getFromAddress();
+  if (!resend || !from) {
+    const detail =
+      "Chýba RESEND_API_KEY alebo EMAIL_FROM — lokálne .env alebo premenné na Verceli.";
+    logEmailConfigSkip("Faktúra", detail);
+    return { ok: false, skipped: true, detail };
+  }
+
+  const base = getPublicSiteUrl();
+  const isInternalCopy =
+    input.recipientKind === "admin" || input.recipientKind === "accountant";
+
+  const rows = input.lines
+    .map(
+      (ln) =>
+        `<tr>
+          <td style="padding:12px 10px;border-bottom:1px solid ${EB.border};font-size:14px;line-height:1.45;color:${EB.text};">${escapeHtml(ln.productName)}</td>
+          <td style="padding:12px 8px;border-bottom:1px solid ${EB.border};text-align:center;font-weight:700;font-size:14px;color:${EB.text};">${ln.quantity}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid ${EB.border};text-align:right;font-size:14px;line-height:1.45;color:${EB.muted};">${formatPrice(ln.unitPriceCents)}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid ${EB.border};text-align:right;font-weight:700;font-size:14px;color:${EB.text};">${formatPrice(ln.lineTotalCents)}</td>
+        </tr>`
+    )
+    .join("");
+
+  const discountRow =
+    input.discountCents > 0
+      ? `<tr>
+          <td colspan="3" style="padding:12px 10px;background:${EB.warmTint};border-bottom:1px solid ${EB.border};text-align:right;font-size:13px;font-weight:800;color:${EB.accent};">Zľava</td>
+          <td style="padding:12px 10px;background:${EB.warmTint};border-bottom:1px solid ${EB.border};text-align:right;font-weight:900;font-size:14px;color:${EB.accent};">−${formatPrice(input.discountCents)}</td>
+        </tr>`
+      : "";
+
+  const greeting =
+    input.recipientKind === "customer"
+      ? `<p style="margin:0 0 10px;">Ahoj <strong>${escapeHtml(input.customerName)}</strong>,</p>
+  <p style="margin:0 0 14px;font-size:18px;line-height:1.35;color:${EB.text};"><strong style="color:${EB.brandDark};">Tu je tvoja faktúra</strong> k zaplatenej objednávke.</p>`
+      : input.recipientKind === "accountant"
+        ? `<p style="margin:0 0 14px;">Faktúra za objednávku ${chipHtml(input.orderNumber)} · zákazník <strong>${escapeHtml(input.customerName)}</strong> (pre účtovníctvo).</p>`
+        : `<p style="margin:0 0 14px;">Kópia faktúry za objednávku ${chipHtml(input.orderNumber)} · zákazník <strong>${escapeHtml(input.customerName)}</strong>.</p>`;
+
+  const innerInvoice = `
+  ${greeting}
+  <p style="margin:0 0 18px;">Číslo faktúry ${chipHtml(input.invoiceNumber)}</p>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:6px 0 14px;border:1px solid ${EB.border};border-radius:14px;overflow:hidden;border-collapse:separate;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+    <tr style="background:${EB.tint};">
+      <th align="left" style="padding:11px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;">Produkt</th>
+      <th align="center" style="padding:11px 8px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;width:44px;">Ks</th>
+      <th align="right" style="padding:11px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;">Cena / ks</th>
+      <th align="right" style="padding:11px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${EB.brandDark};font-weight:800;">Spolu</th>
+    </tr>
+    ${rows}
+    <tr>
+      <td colspan="3" style="padding:12px 10px;text-align:right;font-size:14px;color:${EB.muted};"><span style="color:${EB.text};font-weight:600;">Medzisúčet</span></td>
+      <td style="padding:12px 10px;text-align:right;font-weight:700;font-size:14px;border-top:1px solid ${EB.border};color:${EB.text};">${formatPrice(input.subtotalCents)}</td>
+    </tr>
+    ${discountRow}
+    <tr>
+      <td colspan="3" style="padding:10px;text-align:right;font-size:13px;color:${EB.muted};">Doprava <span style="color:${EB.text};font-weight:600;">(${escapeHtml(input.shippingLabel)})</span></td>
+      <td style="padding:10px;text-align:right;font-weight:700;font-size:14px;color:${EB.text};">${formatPrice(input.shippingCents)}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="padding:15px 10px;text-align:right;font-size:16px;font-weight:900;color:${EB.text};border-top:2px solid ${EB.brand};background:${EB.surface};">Celkom</td>
+      <td style="padding:15px 10px;text-align:right;font-size:18px;font-weight:900;color:${EB.brandDark};border-top:2px solid ${EB.brand};background:${EB.surface};">${formatPrice(input.totalCents)}</td>
+    </tr>
+  </table>
+  <p style="margin:0 0 4px;padding:14px 16px;border-radius:12px;background:${EB.tint};border:1px solid ${EB.border};font-size:13px;line-height:1.55;color:${EB.text};">PDF faktúra je priložená k tomuto emailu.</p>
+  `.trimStart();
+
+  const html = wrapCustomerEmail({
+    baseUrl: base,
+    preheader: `Faktúra ${input.invoiceNumber} — ${formatPrice(input.totalCents)}`,
+    innerHtml: innerInvoice,
+    hideAutoDisclaimer: isInternalCopy,
+  });
+
+  const subject =
+    input.recipientKind === "customer"
+      ? `${BRAND_NAME} – faktúra ${input.invoiceNumber}`
+      : input.recipientKind === "accountant"
+        ? `${BRAND_NAME} – faktúra ${input.invoiceNumber} (účtovníctvo)`
+        : `${BRAND_NAME} – faktúra ${input.invoiceNumber} (kópia)`;
+
+  const { data, error } = await resend.emails.send({
+    from,
+    to: input.to,
+    subject,
+    html,
+    attachments: [
+      {
+        filename: input.pdfFilename,
+        content: input.pdfBase64,
+      },
+    ],
+  });
+
+  if (error) {
+    const errStr = serializeResendError(error);
+    console.error("[email] Resend faktúra:", error);
+    return { ok: false, error: errStr };
+  }
+
+  if (data?.id) {
+    console.info("[email] Faktúra odoslaná, Resend id:", data.id);
+  }
+  return { ok: true, id: data?.id };
+}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, formatDateTime } from "@/lib/format";
 import { OrderStatusSelect } from "@/components/admin/OrderStatusSelect";
+import { InvoiceResendButton } from "@/components/admin/InvoiceSendModal";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { PacketaPanel } from "@/components/admin/PacketaPanel";
 import { getPacketaConfig } from "@/lib/packeta/client";
@@ -110,7 +111,17 @@ export default async function AdminOrderDetailPage({
           <div className="rounded-2xl bg-white p-5 ring-1 ring-neutral-200">
             <h2 className="text-base font-semibold">Stav objednávky</h2>
             <div className="mt-3">
-              <OrderStatusSelect orderId={order.id} status={order.status} />
+              <OrderStatusSelect
+                orderId={order.id}
+                status={order.status}
+                customerEmail={order.customerEmail}
+              />
+              {order.status === "PAID" && (
+                <InvoiceResendButton
+                  orderId={order.id}
+                  customerEmail={order.customerEmail}
+                />
+              )}
             </div>
             <p className="mt-3 text-xs text-neutral-400">
               Vytvorené: {formatDateTime(order.createdAt)}
