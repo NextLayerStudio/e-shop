@@ -17,6 +17,20 @@ interface PacketaPanelProps {
   packetaError: string | null;
 }
 
+function packetaErrorHint(message: string): string | null {
+  const lower = message.toLowerCase();
+  if (lower.includes("not approved for posting parcels")) {
+    return "V Packeta klientskom účte ešte nie je povolené vytváranie zásielok. Napíš na integrations@packeta.com alebo cez klientsky portál Packeta a požiadaj o aktiváciu odosielania balíkov.";
+  }
+  if (lower.includes("eshop") || lower.includes("sender")) {
+    return "Skontroluj PACKETA_ESHOP v .env — musí presne zodpovedať „označeniu“ odosielateľa v Packeta portáli (Profil → Odosielatelia).";
+  }
+  if (lower.includes("phone")) {
+    return "Zákazník musí mať vyplnené telefónne číslo v objednávke.";
+  }
+  return null;
+}
+
 function trackingUrl(barcode: string): string {
   return `https://tracking.packeta.com/sk/tracking/search?id=${encodeURIComponent(barcode.replace(/\s/g, ""))}`;
 }
@@ -167,7 +181,10 @@ export function PacketaPanel({
       {/* Chybová správa */}
       {localError && (
         <div className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 ring-1 ring-red-200">
-          {localError}
+          <p>{localError}</p>
+          {packetaErrorHint(localError) && (
+            <p className="mt-2 text-red-800">{packetaErrorHint(localError)}</p>
+          )}
         </div>
       )}
 

@@ -82,8 +82,29 @@ function stripXmlTags(s: string): string {
 }
 
 function extractPacketaFault(xml: string): string | null {
+  // Detail block: <detail><attributes><fault><name>...</name><fault>message</fault></fault></attributes></detail>
+  const detailFaults = [
+    ...xml.matchAll(
+      /<detail>[\s\S]*?<attributes>([\s\S]*?)<\/attributes>[\s\S]*?<\/detail>/g
+    ),
+  ];
+  for (const match of detailFaults) {
+    const attributeBlock = match[1];
+    const messages = [
+      ...attributeBlock.matchAll(
+        /<fault>\s*<name>[\s\S]*?<\/name>\s*<fault>([\s\S]*?)<\/fault>\s*<\/fault>/g
+      ),
+    ]
+      .map((m) => stripXmlTags(m[1]))
+      .filter(Boolean);
+    if (messages.length > 0) return messages.join(" · ");
+  }
+
   const faultString = extractTag(xml, "faultString");
   if (faultString && !faultString.includes("<")) return stripXmlTags(faultString);
+
+  const stringTag = extractTag(xml, "string");
+  if (stringTag && !stringTag.includes("<")) return stripXmlTags(stringTag);
 
   const message = extractTag(xml, "message");
   if (message && !message.includes("<")) return stripXmlTags(message);
@@ -92,16 +113,19 @@ function extractPacketaFault(xml: string): string | null {
   const faultMatches = [...xml.matchAll(/<fault>([\s\S]*?)<\/fault>/g)];
   for (let i = faultMatches.length - 1; i >= 0; i--) {
     const inner = faultMatches[i][1].trim();
-    if (!inner.includes("<fault>")) {
+    if (!inner.includes("<fault>") && !inner.includes("<name>")) {
       const text = stripXmlTags(inner);
-      if (text) return text;
+      if (text && text !== "PacketAttributesFault") return text;
     }
   }
 
   const detail = extractTag(xml, "detail");
   if (detail) return stripXmlTags(detail);
 
-  return null;
+  const topFault = extractTag(xml, "fault");
+  if (topFault && topFault !== "PacketAttributesFault") return stripXmlTags(topFault);
+
+  return topFault ? stripXmlTags(topFault) : null;
 }
 
 // ---------------------------------------------------------------------------

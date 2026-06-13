@@ -5,7 +5,7 @@ export const COMPANY_CONTACT = {
   legalName: LEGAL_ENTITY_NAME,
   responsiblePerson: "Karolína Nováková",
   address: "Haburská 84/9, 821 01 Bratislava – mestská časť Ružinov",
-  email: "know3d.know3d@gmail.com",
+  email: "know3d.know3d@know3d.sk",
   /** Email účtovníčky (Doklado / fakturácia). */
   accountantEmail: "know3dsro-vbo7@faktury.doklado.sk",
   ico: "57514097",
