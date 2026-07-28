@@ -49,6 +49,7 @@
     "dotenv": "^17.4.2",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
+    "to-ico": "^1.1.5",
     "tsx": "^4.21.0",
     "typescript": "^5"
   }

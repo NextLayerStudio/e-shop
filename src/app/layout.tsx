@@ -14,14 +14,6 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND_NAME}`,
   },
   description: `${BRAND_NAME} – kvalitné 3D výtlačky, doplnky a tlač na mieru. Objednávajte priamo z e-shopu.`,
-  icons: {
-    icon: [
-      { url: "/icon.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { url: "/favicon.ico", sizes: "32x32" },
-    ],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
-  },
 };
 
 export default function RootLayout({
