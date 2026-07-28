@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "favicon:generate": "node scripts/generate-favicons.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
